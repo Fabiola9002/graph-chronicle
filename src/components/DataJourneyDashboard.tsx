@@ -12,6 +12,7 @@ import { TimelineChart } from "./visualizations/TimelineChart";
 import { SankeyDiagram } from "./visualizations/SankeyDiagram";
 import { UnifiedNetworkFlow } from "./visualizations/UnifiedNetworkFlow";
 import { ParticleGalaxyFlow } from "./visualizations/ParticleGalaxyFlow";
+import { NeuralNetworkBrain } from "./visualizations/NeuralNetworkBrain";
 import { MetricCards } from "./MetricCards";
 import { SearchPanel } from "./SearchPanel";
 import { JourneyInsights } from "./JourneyInsights";
@@ -49,7 +50,7 @@ export interface Journey {
 const DataJourneyDashboard = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [timeRange, setTimeRange] = useState([0, 100]);
-  const [selectedVisualization, setSelectedVisualization] = useState("galaxy");
+  const [selectedVisualization, setSelectedVisualization] = useState("neural");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [selectedDataset, setSelectedDataset] = useState<string | null>(null);
@@ -257,6 +258,7 @@ const DataJourneyDashboard = () => {
                   
                   <Tabs value={selectedVisualization} onValueChange={setSelectedVisualization}>
                     <TabsList>
+                      <TabsTrigger value="neural">Neural</TabsTrigger>
                       <TabsTrigger value="galaxy">Galaxy</TabsTrigger>
                       <TabsTrigger value="network">Network</TabsTrigger>
                       <TabsTrigger value="heatmap">Heatmap</TabsTrigger>
@@ -285,6 +287,9 @@ const DataJourneyDashboard = () => {
               </CardHeader>
               
               <CardContent className="h-96">
+                {selectedVisualization === "neural" && (
+                  <NeuralNetworkBrain data={filteredData} />
+                )}
                 {selectedVisualization === "galaxy" && (
                   <ParticleGalaxyFlow data={filteredData} />
                 )}
