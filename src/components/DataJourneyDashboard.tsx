@@ -10,6 +10,7 @@ import { AccessHeatmap } from "./visualizations/AccessHeatmap";
 import { UserDatasetFlow } from "./visualizations/UserDatasetFlow";
 import { TimelineChart } from "./visualizations/TimelineChart";
 import { SankeyDiagram } from "./visualizations/SankeyDiagram";
+import { UnifiedNetworkFlow } from "./visualizations/UnifiedNetworkFlow";
 import { MetricCards } from "./MetricCards";
 import { SearchPanel } from "./SearchPanel";
 import { JourneyInsights } from "./JourneyInsights";
@@ -47,7 +48,7 @@ export interface Journey {
 const DataJourneyDashboard = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [timeRange, setTimeRange] = useState([0, 100]);
-  const [selectedVisualization, setSelectedVisualization] = useState("heatmap");
+  const [selectedVisualization, setSelectedVisualization] = useState("network");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [selectedDataset, setSelectedDataset] = useState<string | null>(null);
@@ -255,6 +256,7 @@ const DataJourneyDashboard = () => {
                   
                   <Tabs value={selectedVisualization} onValueChange={setSelectedVisualization}>
                     <TabsList>
+                      <TabsTrigger value="network">Network</TabsTrigger>
                       <TabsTrigger value="heatmap">Heatmap</TabsTrigger>
                       <TabsTrigger value="flow">Flow</TabsTrigger>
                       <TabsTrigger value="timeline">Timeline</TabsTrigger>
@@ -281,6 +283,9 @@ const DataJourneyDashboard = () => {
               </CardHeader>
               
               <CardContent className="h-96">
+                {selectedVisualization === "network" && (
+                  <UnifiedNetworkFlow data={filteredData} />
+                )}
                 {selectedVisualization === "heatmap" && (
                   <AccessHeatmap data={filteredData} />
                 )}
