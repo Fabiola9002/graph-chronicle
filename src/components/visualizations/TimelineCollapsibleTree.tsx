@@ -4,9 +4,10 @@ import * as d3 from 'd3';
 interface DatasetAccess {
   user: string;
   dataset: string;
-  accessType: 'read' | 'write' | 'delete';
+  accessType: 'read' | 'modify';
   timestamp: Date;
   department: string;
+  organization: string;
   duration: number;
 }
 
@@ -84,64 +85,90 @@ const TimelineCollapsibleTree: React.FC<TimelineCollapsibleTreeProps> = ({
     const filteredData = parsedData.filter((d: any) => new Date(d.timestamp) <= endTime);
 
     if (hierarchy === 'dataset-orgs-users') {
-      // Group by department -> dataset -> users
-      const departmentMap = new Map<string, Map<string, Set<string>>>();
+      // Group by dataset -> organizations -> users -> access type
+      const datasetMap = new Map<string, Map<string, Map<string, Map<string, number>>>>();
       const accessCounts = new Map<string, number>();
       const lastAccess = new Map<string, Date>();
 
       filteredData.forEach((access: any) => {
-        const deptKey = access.department;
-        const datasetKey = `${access.department}-${access.dataset}`;
+        const datasetKey = access.dataset;
+        const orgKey = `${access.dataset}-${access.organization}`;
+        const userKey = `${access.dataset}-${access.organization}-${access.user}`;
+        const accessTypeKey = `${access.dataset}-${access.organization}-${access.user}-${access.accessType}`;
         
-        if (!departmentMap.has(deptKey)) {
-          departmentMap.set(deptKey, new Map());
+        if (!datasetMap.has(datasetKey)) {
+          datasetMap.set(datasetKey, new Map());
         }
-        if (!departmentMap.get(deptKey)!.has(datasetKey)) {
-          departmentMap.get(deptKey)!.set(datasetKey, new Set());
+        if (!datasetMap.get(datasetKey)!.has(orgKey)) {
+          datasetMap.get(datasetKey)!.set(orgKey, new Map());
+        }
+        if (!datasetMap.get(datasetKey)!.get(orgKey)!.has(userKey)) {
+          datasetMap.get(datasetKey)!.get(orgKey)!.set(userKey, new Map());
         }
         
-        departmentMap.get(deptKey)!.get(datasetKey)!.add(access.user);
-        accessCounts.set(datasetKey, (accessCounts.get(datasetKey) || 0) + 1);
+        const currentCount = datasetMap.get(datasetKey)!.get(orgKey)!.get(userKey)!.get(accessTypeKey) || 0;
+        datasetMap.get(datasetKey)!.get(orgKey)!.get(userKey)!.set(accessTypeKey, currentCount + 1);
         
-        if (!lastAccess.has(datasetKey) || new Date(access.timestamp) > lastAccess.get(datasetKey)!) {
-          lastAccess.set(datasetKey, new Date(access.timestamp));
+        accessCounts.set(accessTypeKey, (accessCounts.get(accessTypeKey) || 0) + 1);
+        
+        if (!lastAccess.has(accessTypeKey) || new Date(access.timestamp) > lastAccess.get(accessTypeKey)!) {
+          lastAccess.set(accessTypeKey, new Date(access.timestamp));
         }
       });
 
-      // Build tree structure for dataset -> orgs -> users
+      // Build tree structure for dataset -> orgs -> users -> access type
       const root: TreeNode = {
         id: 'root',
         name: 'Dataset Access Tree',
-        children: Array.from(departmentMap.entries()).map(([dept, datasets]) => ({
-          id: dept,
-          name: dept,
+        children: Array.from(datasetMap.entries()).map(([dataset, orgs]) => ({
+          id: dataset,
+          name: `Dataset: ${dataset}`,
           data: {
-            accessCount: Array.from(datasets.values()).reduce((sum, users) => sum + users.size, 0),
-            department: dept,
+            accessCount: Array.from(orgs.values()).reduce((sum, users) => 
+              sum + Array.from(users.values()).reduce((userSum, accessTypes) => 
+                userSum + Array.from(accessTypes.values()).reduce((typeSum, count) => typeSum + count, 0), 0), 0),
+            department: 'Dataset',
             lastAccess: new Date(),
             users: []
           },
-          children: Array.from(datasets.entries()).map(([datasetKey, users]) => {
-            const dataset = datasetKey.replace(`${dept}-`, '');
+          children: Array.from(orgs.entries()).map(([orgKey, users]) => {
+            const org = orgKey.replace(`${dataset}-`, '');
             return {
-              id: datasetKey,
-              name: dataset,
+              id: orgKey,
+              name: `Org: ${org}`,
               data: {
-                accessCount: accessCounts.get(datasetKey) || 0,
-                department: dept,
-                lastAccess: lastAccess.get(datasetKey) || new Date(),
-                users: Array.from(users)
+                accessCount: Array.from(users.values()).reduce((sum, accessTypes) => 
+                  sum + Array.from(accessTypes.values()).reduce((typeSum, count) => typeSum + count, 0), 0),
+                department: org,
+                lastAccess: new Date(),
+                users: []
               },
-              children: Array.from(users).map(user => ({
-                id: `${datasetKey}-${user}`,
-                name: user,
-                data: {
-                  accessCount: filteredData.filter((d: any) => d.user === user && `${d.department}-${d.dataset}` === datasetKey).length,
-                  department: dept,
-                  lastAccess: new Date(),
-                  users: [user]
-                }
-              }))
+              children: Array.from(users.entries()).map(([userKey, accessTypes]) => {
+                const user = userKey.replace(`${dataset}-${org}-`, '');
+                return {
+                  id: userKey,
+                  name: `User: ${user}`,
+                  data: {
+                    accessCount: Array.from(accessTypes.values()).reduce((sum, count) => sum + count, 0),
+                    department: org,
+                    lastAccess: new Date(),
+                    users: [user]
+                  },
+                  children: Array.from(accessTypes.entries()).map(([accessTypeKey, count]) => {
+                    const accessType = accessTypeKey.replace(`${dataset}-${org}-${user}-`, '');
+                    return {
+                      id: accessTypeKey,
+                      name: `${accessType} (${count})`,
+                      data: {
+                        accessCount: count,
+                        department: org,
+                        lastAccess: lastAccess.get(accessTypeKey) || new Date(),
+                        users: [user]
+                      }
+                    };
+                  })
+                };
+              })
             };
           })
         }))
