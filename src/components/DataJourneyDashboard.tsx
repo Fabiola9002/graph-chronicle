@@ -55,12 +55,13 @@ const DataJourneyDashboard = () => {
   const [selectedDataset, setSelectedDataset] = useState<string | null>(null);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [currentTime, setCurrentTime] = useState(0);
-  const [filters, setFilters] = useState({
+const [filters, setFilters] = useState({
     departments: [] as string[],
     datasetTypes: [] as string[],
     accessTypes: [] as string[],
     timeWindow: 'day' as 'hour' | 'day' | 'week' | 'month'
   });
+  const [treeHierarchy, setTreeHierarchy] = useState<'dataset-orgs-users' | 'user-platform-dataset'>('dataset-orgs-users');
 
   // Mock data generation
   const generateMockData = (): DatasetAccess[] => {
@@ -246,7 +247,7 @@ const DataJourneyDashboard = () => {
           </div>
 
           {/* Center Panel - Visualizations */}
-          <div className="col-span-6">
+          <div className="col-span-7">
             <Card className="shadow-elegant">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -255,7 +256,7 @@ const DataJourneyDashboard = () => {
                     Data Access Visualization
                   </CardTitle>
                   
-                  <Carousel className="w-full max-w-xs">
+                  <Carousel className="w-full max-w-md">
                     <CarouselContent>
                       <CarouselItem>
                         <Button 
@@ -308,6 +309,21 @@ const DataJourneyDashboard = () => {
                   </Carousel>
                 </div>
                 
+                {selectedVisualization === "tree" && (
+                  <div className="flex items-center gap-4 mb-4">
+                    <span className="text-sm text-muted-foreground">Hierarchy:</span>
+                    <Select value={treeHierarchy} onValueChange={(v: any) => setTreeHierarchy(v)}>
+                      <SelectTrigger className="w-48">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="dataset-orgs-users">Dataset → Orgs → Users</SelectItem>
+                        <SelectItem value="user-platform-dataset">User → Platform → Dataset</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                
                 <div className="flex items-center gap-4">
                   <span className="text-sm text-muted-foreground">Timeline:</span>
                   <div className="flex-1">
@@ -325,7 +341,7 @@ const DataJourneyDashboard = () => {
                 </div>
               </CardHeader>
               
-              <CardContent className="h-96">
+              <CardContent className="h-[500px]">
                 {selectedVisualization === "heatmap" && (
                   <AccessHeatmap data={filteredData} />
                 )}
@@ -348,8 +364,9 @@ const DataJourneyDashboard = () => {
                       department: d.department,
                       duration: d.duration
                     }))}
-                    width={700}
-                    height={384}
+                    hierarchy={treeHierarchy}
+                    width={800}
+                    height={468}
                   />
                 )}
               </CardContent>
@@ -357,7 +374,7 @@ const DataJourneyDashboard = () => {
           </div>
 
           {/* Right Panel - Details */}
-          <div className="col-span-3 space-y-4">
+          <div className="col-span-2 space-y-4">
             {selectedUser && (
               <Card className="shadow-elegant">
                 <CardHeader>

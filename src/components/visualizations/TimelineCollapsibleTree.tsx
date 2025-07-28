@@ -38,101 +38,181 @@ interface HierarchyTreeNode extends d3.HierarchyNode<TreeNode> {
 }
 
 interface TimelineCollapsibleTreeProps {
-  data: DatasetAccess[];
+  data: DatasetAccess[] | any; // Support JSON payload
   width?: number;
   height?: number;
+  hierarchy?: 'dataset-orgs-users' | 'user-platform-dataset';
 }
 
 const TimelineCollapsibleTree: React.FC<TimelineCollapsibleTreeProps> = ({ 
   data, 
   width = 1000, 
-  height = 600 
+  height = 600,
+  hierarchy = 'dataset-orgs-users'
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [treeRoot, setTreeRoot] = useState<TreeNode | null>(null);
 
+  // Parse data if it's a JSON payload
+  const parsedData = useMemo(() => {
+    if (Array.isArray(data)) return data;
+    if (typeof data === 'string') {
+      try {
+        return JSON.parse(data);
+      } catch {
+        return [];
+      }
+    }
+    return data?.data || [];
+  }, [data]);
+
   // Time range from data
   const timeRange = useMemo(() => {
-    if (!data.length) return { start: new Date(), end: new Date() };
-    const timestamps = data.map(d => d.timestamp.getTime());
+    if (!parsedData.length) return { start: new Date(), end: new Date() };
+    const timestamps = parsedData.map((d: any) => new Date(d.timestamp).getTime());
     return {
       start: new Date(Math.min(...timestamps)),
       end: new Date(Math.max(...timestamps))
     };
-  }, [data]);
+  }, [parsedData]);
 
-  // Generate tree data based on current time
+  // Generate tree data based on current time and hierarchy
   const generateTreeData = useMemo(() => {
     const endTime = new Date(timeRange.start.getTime() + (currentTime / 100) * (timeRange.end.getTime() - timeRange.start.getTime()));
-    const filteredData = data.filter(d => d.timestamp <= endTime);
+    const filteredData = parsedData.filter((d: any) => new Date(d.timestamp) <= endTime);
 
-    // Group by department -> dataset -> users
-    const departmentMap = new Map<string, Map<string, Set<string>>>();
-    const accessCounts = new Map<string, number>();
-    const lastAccess = new Map<string, Date>();
+    if (hierarchy === 'dataset-orgs-users') {
+      // Group by department -> dataset -> users
+      const departmentMap = new Map<string, Map<string, Set<string>>>();
+      const accessCounts = new Map<string, number>();
+      const lastAccess = new Map<string, Date>();
 
-    filteredData.forEach(access => {
-      const deptKey = access.department;
-      const datasetKey = `${access.department}-${access.dataset}`;
-      
-      if (!departmentMap.has(deptKey)) {
-        departmentMap.set(deptKey, new Map());
-      }
-      if (!departmentMap.get(deptKey)!.has(datasetKey)) {
-        departmentMap.get(deptKey)!.set(datasetKey, new Set());
-      }
-      
-      departmentMap.get(deptKey)!.get(datasetKey)!.add(access.user);
-      accessCounts.set(datasetKey, (accessCounts.get(datasetKey) || 0) + 1);
-      
-      if (!lastAccess.has(datasetKey) || access.timestamp > lastAccess.get(datasetKey)!) {
-        lastAccess.set(datasetKey, access.timestamp);
-      }
-    });
+      filteredData.forEach((access: any) => {
+        const deptKey = access.department;
+        const datasetKey = `${access.department}-${access.dataset}`;
+        
+        if (!departmentMap.has(deptKey)) {
+          departmentMap.set(deptKey, new Map());
+        }
+        if (!departmentMap.get(deptKey)!.has(datasetKey)) {
+          departmentMap.get(deptKey)!.set(datasetKey, new Set());
+        }
+        
+        departmentMap.get(deptKey)!.get(datasetKey)!.add(access.user);
+        accessCounts.set(datasetKey, (accessCounts.get(datasetKey) || 0) + 1);
+        
+        if (!lastAccess.has(datasetKey) || new Date(access.timestamp) > lastAccess.get(datasetKey)!) {
+          lastAccess.set(datasetKey, new Date(access.timestamp));
+        }
+      });
 
-    // Build tree structure
-    const root: TreeNode = {
-      id: 'root',
-      name: 'Data Access Tree',
-      children: Array.from(departmentMap.entries()).map(([dept, datasets]) => ({
-        id: dept,
-        name: dept,
-        data: {
-          accessCount: Array.from(datasets.values()).reduce((sum, users) => sum + users.size, 0),
-          department: dept,
-          lastAccess: new Date(),
-          users: []
-        },
-        children: Array.from(datasets.entries()).map(([datasetKey, users]) => {
-          const dataset = datasetKey.replace(`${dept}-`, '');
-          return {
-            id: datasetKey,
-            name: dataset,
-            data: {
-              accessCount: accessCounts.get(datasetKey) || 0,
-              department: dept,
-              lastAccess: lastAccess.get(datasetKey) || new Date(),
-              users: Array.from(users)
-            },
-            children: Array.from(users).map(user => ({
-              id: `${datasetKey}-${user}`,
-              name: user,
+      // Build tree structure for dataset -> orgs -> users
+      const root: TreeNode = {
+        id: 'root',
+        name: 'Dataset Access Tree',
+        children: Array.from(departmentMap.entries()).map(([dept, datasets]) => ({
+          id: dept,
+          name: dept,
+          data: {
+            accessCount: Array.from(datasets.values()).reduce((sum, users) => sum + users.size, 0),
+            department: dept,
+            lastAccess: new Date(),
+            users: []
+          },
+          children: Array.from(datasets.entries()).map(([datasetKey, users]) => {
+            const dataset = datasetKey.replace(`${dept}-`, '');
+            return {
+              id: datasetKey,
+              name: dataset,
               data: {
-                accessCount: filteredData.filter(d => d.user === user && `${d.department}-${d.dataset}` === datasetKey).length,
+                accessCount: accessCounts.get(datasetKey) || 0,
                 department: dept,
-                lastAccess: new Date(),
-                users: [user]
-              }
-            }))
-          };
-        })
-      }))
-    };
+                lastAccess: lastAccess.get(datasetKey) || new Date(),
+                users: Array.from(users)
+              },
+              children: Array.from(users).map(user => ({
+                id: `${datasetKey}-${user}`,
+                name: user,
+                data: {
+                  accessCount: filteredData.filter((d: any) => d.user === user && `${d.department}-${d.dataset}` === datasetKey).length,
+                  department: dept,
+                  lastAccess: new Date(),
+                  users: [user]
+                }
+              }))
+            };
+          })
+        }))
+      };
+      return root;
+    } else {
+      // Group by user -> department/platform -> dataset
+      const userMap = new Map<string, Map<string, Set<string>>>();
+      const accessCounts = new Map<string, number>();
+      const lastAccess = new Map<string, Date>();
 
-    return root;
-  }, [data, currentTime, timeRange]);
+      filteredData.forEach((access: any) => {
+        const userKey = access.user;
+        const platformKey = `${access.user}-${access.department}`;
+        
+        if (!userMap.has(userKey)) {
+          userMap.set(userKey, new Map());
+        }
+        if (!userMap.get(userKey)!.has(platformKey)) {
+          userMap.get(userKey)!.set(platformKey, new Set());
+        }
+        
+        userMap.get(userKey)!.get(platformKey)!.add(access.dataset);
+        accessCounts.set(platformKey, (accessCounts.get(platformKey) || 0) + 1);
+        
+        if (!lastAccess.has(platformKey) || new Date(access.timestamp) > lastAccess.get(platformKey)!) {
+          lastAccess.set(platformKey, new Date(access.timestamp));
+        }
+      });
+
+      // Build tree structure for user -> platform -> dataset
+      const root: TreeNode = {
+        id: 'root',
+        name: 'User Access Tree',
+        children: Array.from(userMap.entries()).map(([user, platforms]) => ({
+          id: user,
+          name: user,
+          data: {
+            accessCount: Array.from(platforms.values()).reduce((sum, datasets) => sum + datasets.size, 0),
+            department: 'User',
+            lastAccess: new Date(),
+            users: [user]
+          },
+          children: Array.from(platforms.entries()).map(([platformKey, datasets]) => {
+            const platform = platformKey.replace(`${user}-`, '');
+            return {
+              id: platformKey,
+              name: platform,
+              data: {
+                accessCount: accessCounts.get(platformKey) || 0,
+                department: platform,
+                lastAccess: lastAccess.get(platformKey) || new Date(),
+                users: [user]
+              },
+              children: Array.from(datasets).map(dataset => ({
+                id: `${platformKey}-${dataset}`,
+                name: dataset,
+                data: {
+                  accessCount: filteredData.filter((d: any) => d.user === user && d.department === platform && d.dataset === dataset).length,
+                  department: platform,
+                  lastAccess: new Date(),
+                  users: [user]
+                }
+              }))
+            };
+          })
+        }))
+      };
+      return root;
+    }
+  }, [parsedData, currentTime, timeRange, hierarchy]);
 
   // Initialize tree and handle updates
   useEffect(() => {
@@ -326,7 +406,7 @@ const TimelineCollapsibleTree: React.FC<TimelineCollapsibleTreeProps> = ({
     <div className="w-full h-full flex flex-col">
       <div className="flex items-center justify-between p-4 border-b border-border">
         <h3 className="text-lg font-semibold text-foreground">
-          Timeline Tree Visualization
+          {hierarchy === 'dataset-orgs-users' ? 'Dataset → Organization → Users' : 'User → Platform → Dataset'}
         </h3>
         <div className="text-sm text-muted-foreground">
           Time: {new Date(timeRange.start.getTime() + (currentTime / 100) * (timeRange.end.getTime() - timeRange.start.getTime())).toLocaleString()}
