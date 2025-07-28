@@ -349,8 +349,6 @@ const [filters, setFilters] = useState({
                       duration: d.duration
                     }))}
                     hierarchy={treeHierarchy}
-                    width={1000}
-                    height={568}
                   />
                 )}
               </CardContent>

@@ -47,14 +47,15 @@ interface TimelineCollapsibleTreeProps {
 
 const TimelineCollapsibleTree: React.FC<TimelineCollapsibleTreeProps> = ({ 
   data, 
-  width = 1000, 
-  height = 600,
+  width, 
+  height,
   hierarchy = 'dataset-orgs-users'
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [treeRoot, setTreeRoot] = useState<TreeNode | null>(null);
+  const [dimensions, setDimensions] = useState({ width: 800, height: 500 });
 
   // Parse data if it's a JSON payload
   const parsedData = useMemo(() => {
@@ -252,6 +253,23 @@ const TimelineCollapsibleTree: React.FC<TimelineCollapsibleTreeProps> = ({
     }
   }, [parsedData, currentTime, timeRange, hierarchy]);
 
+  // Handle container resize
+  useEffect(() => {
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setDimensions({
+          width: width || Math.max(rect.width, 400),
+          height: height || Math.max(rect.height - 100, 400) // Account for header/footer
+        });
+      }
+    };
+
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+    return () => window.removeEventListener('resize', updateDimensions);
+  }, [width, height]);
+
   // Initialize tree and handle updates
   useEffect(() => {
     if (!svgRef.current || !generateTreeData) return;
@@ -260,8 +278,8 @@ const TimelineCollapsibleTree: React.FC<TimelineCollapsibleTreeProps> = ({
     svg.selectAll("*").remove();
 
     const margin = { top: 20, right: 120, bottom: 20, left: 120 };
-    const innerWidth = width - margin.left - margin.right;
-    const innerHeight = height - margin.top - margin.bottom;
+    const innerWidth = dimensions.width - margin.left - margin.right;
+    const innerHeight = dimensions.height - margin.top - margin.bottom;
 
     const g = svg.append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
@@ -430,7 +448,7 @@ const TimelineCollapsibleTree: React.FC<TimelineCollapsibleTreeProps> = ({
     // Initial render
     update(root);
 
-  }, [generateTreeData, width, height]);
+  }, [generateTreeData, dimensions]);
 
   // Handle horizontal scroll
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -442,11 +460,11 @@ const TimelineCollapsibleTree: React.FC<TimelineCollapsibleTreeProps> = ({
 
   return (
     <div className="w-full h-full flex flex-col">
-      <div className="flex items-center justify-between p-4 border-b border-border">
-        <h3 className="text-lg font-semibold text-foreground">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border-b border-border gap-2">
+        <h3 className="text-sm sm:text-lg font-semibold text-foreground">
           {hierarchy === 'dataset-orgs-users' ? 'Dataset → Organization → Users' : 'User → Platform → Dataset'}
         </h3>
-        <div className="text-sm text-muted-foreground">
+        <div className="text-xs sm:text-sm text-muted-foreground">
           Time: {new Date(timeRange.start.getTime() + (currentTime / 100) * (timeRange.end.getTime() - timeRange.start.getTime())).toLocaleString()}
         </div>
       </div>
@@ -457,18 +475,18 @@ const TimelineCollapsibleTree: React.FC<TimelineCollapsibleTreeProps> = ({
         onScroll={handleScroll}
         style={{ scrollBehavior: 'smooth' }}
       >
-        <div style={{ width: width * 3, height }}>
+        <div style={{ width: Math.max(dimensions.width * 3, 1200), height: dimensions.height }}>
           <svg
             ref={svgRef}
-            width={width}
-            height={height}
+            width={dimensions.width}
+            height={dimensions.height}
             className="bg-background"
           />
         </div>
       </div>
 
-      <div className="p-4 border-t border-border">
-        <div className="text-sm text-muted-foreground">
+      <div className="p-2 sm:p-4 border-t border-border">
+        <div className="text-xs sm:text-sm text-muted-foreground">
           Scroll horizontally to travel through time • Click nodes to expand/collapse • Circle size indicates access frequency
         </div>
       </div>
