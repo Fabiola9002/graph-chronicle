@@ -39,7 +39,7 @@ interface HierarchyTreeNode extends d3.HierarchyNode<TreeNode> {
 }
 
 interface TimelineCollapsibleTreeProps {
-  data: DatasetAccess[] | any; // Support JSON payload
+  data: DatasetAccess[] | string | { data: DatasetAccess[] } | any;
   width?: number;
   height?: number;
   hierarchy?: 'dataset-orgs-users' | 'user-platform-dataset';
@@ -58,15 +58,26 @@ const TimelineCollapsibleTree: React.FC<TimelineCollapsibleTreeProps> = ({
 
   // Parse data if it's a JSON payload
   const parsedData = useMemo(() => {
+    // Handle array data directly
     if (Array.isArray(data)) return data;
+    
+    // Handle JSON string
     if (typeof data === 'string') {
       try {
-        return JSON.parse(data);
-      } catch {
+        const parsed = JSON.parse(data);
+        return Array.isArray(parsed) ? parsed : parsed.data || [];
+      } catch (error) {
+        console.error('Failed to parse JSON data:', error);
         return [];
       }
     }
-    return data?.data || [];
+    
+    // Handle object with data property or direct object
+    if (data && typeof data === 'object') {
+      return data.data || data.records || data.items || [];
+    }
+    
+    return [];
   }, [data]);
 
   // Time range from data
