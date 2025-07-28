@@ -141,25 +141,43 @@ const TimelineCollapsibleTree: React.FC<TimelineCollapsibleTreeProps> = ({
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
 
-    const margin = { top: 20, right: 120, bottom: 20, left: 120 };
-    const innerWidth = width - margin.left - margin.right;
-    const innerHeight = height - margin.top - margin.bottom;
+    const marginTop = 10;
+    const marginRight = 10;
+    const marginBottom = 10;
+    const marginLeft = 40;
 
     const g = svg.append("g")
-      .attr("transform", `translate(${margin.left},${margin.top})`);
-
-    // Create tree layout
-    const tree = d3.tree<TreeNode>()
-      .size([innerHeight, innerWidth]);
+      .attr("transform", `translate(${marginLeft},${marginTop})`);
 
     // Create hierarchy
     const root = d3.hierarchy(generateTreeData);
     
+    // Rows are separated by dx pixels, columns by dy pixels
+    const dx = 25;
+    const dy = (width - marginRight - marginLeft) / (1 + root.height);
+
+    // Define the tree layout and the shape for links
+    const tree = d3.tree<TreeNode>().nodeSize([dx, dy]);
+    const diagonal = d3.linkHorizontal<any, TreeNode>()
+      .x(d => d.y)
+      .y(d => d.x);
+
+    // Create link and node groups
+    const gLink = g.append("g")
+      .attr("fill", "none")
+      .attr("stroke", "hsl(var(--border))")
+      .attr("stroke-opacity", 0.6)
+      .attr("stroke-width", 2);
+
+    const gNode = g.append("g")
+      .attr("cursor", "pointer")
+      .attr("pointer-events", "all");
+
     // Collapse all children initially except first level
     const collapse = (d: any) => {
       if (d.children) {
-        (d as any)._children = d.children;
-        (d as any)._children.forEach(collapse);
+        d._children = d.children;
+        d._children.forEach(collapse);
         d.children = null;
       }
     };
@@ -168,149 +186,138 @@ const TimelineCollapsibleTree: React.FC<TimelineCollapsibleTreeProps> = ({
       root.children.forEach(collapse);
     }
 
+    // Set initial positions
+    (root as any).x0 = 0;
+    (root as any).y0 = 0;
+    root.descendants().forEach((d: any, i) => {
+      d.id = i;
+      d._children = d.children;
+      if (d.depth && d.data.name.length !== 7) d.children = null;
+    });
+
     setTreeRoot(root.data);
 
     // Update function
-    let i = 0;
-    const update = (source: d3.HierarchyNode<TreeNode>) => {
-      const treeData = tree(root);
-      const nodes = treeData.descendants();
-      const links = treeData.descendants().slice(1);
+    const update = (event: any, source: any) => {
+      const duration = event?.altKey ? 2500 : 250;
+      const nodes = root.descendants().reverse();
+      const links = root.links();
 
-      // Normalize for fixed-depth
-      nodes.forEach(d => d.y = d.depth * 180);
+      // Compute the new tree layout
+      tree(root);
 
-      // Update nodes
-      const node = g.selectAll("g.node")
-        .data(nodes, (d: any) => d.id || (d.id = ++i));
+      let left = root;
+      let right = root;
+      root.eachBefore(node => {
+        if (node.x < left.x) left = node;
+        if (node.x > right.x) right = node;
+      });
 
+      const heightNeeded = right.x - left.x + marginTop + marginBottom;
+
+      const transition = svg.transition()
+        .duration(duration)
+        .attr("height", Math.max(height, heightNeeded))
+        .attr("viewBox", `${-marginLeft} ${left.x - marginTop} ${width} ${Math.max(height, heightNeeded)}`);
+
+      // Update the nodes
+      const node = gNode.selectAll("g")
+        .data(nodes, (d: any) => d.id);
+
+      // Enter any new nodes at the parent's previous position
       const nodeEnter = node.enter().append("g")
-        .attr("class", "node")
-        .attr("transform", d => `translate(${(source as any).y0 || 0},${(source as any).x0 || 0})`)
-        .on("click", click);
+        .attr("transform", d => `translate(${source.y0 || 0},${source.x0 || 0})`)
+        .attr("fill-opacity", 0)
+        .attr("stroke-opacity", 0)
+        .on("click", (event, d: any) => {
+          d.children = d.children ? null : d._children;
+          update(event, d);
+        });
 
       // Add circles
       nodeEnter.append("circle")
-        .attr("r", 1e-6)
-        .style("fill", d => (d as any)._children ? "hsl(var(--primary))" : "hsl(var(--muted))")
-        .style("stroke", "hsl(var(--border))")
-        .style("stroke-width", "2px");
+        .attr("r", 4)
+        .attr("fill", (d: any) => d._children ? "hsl(var(--primary))" : "hsl(var(--muted))")
+        .attr("stroke", "hsl(var(--border))")
+        .attr("stroke-width", 2);
 
-      // Add labels
+      // Add text labels
       nodeEnter.append("text")
-        .attr("dy", ".35em")
-        .attr("x", d => d.children || (d as any)._children ? -13 : 13)
-        .attr("text-anchor", d => d.children || (d as any)._children ? "end" : "start")
-        .text(d => d.data.name)
-        .style("fill-opacity", 1e-6)
+        .attr("dy", "0.31em")
+        .attr("x", (d: any) => d._children ? -8 : 8)
+        .attr("text-anchor", (d: any) => d._children ? "end" : "start")
+        .text((d: any) => d.data.name)
+        .attr("stroke-linejoin", "round")
+        .attr("stroke-width", 3)
+        .attr("stroke", "hsl(var(--background))")
+        .attr("paint-order", "stroke")
         .style("font-size", "12px")
         .style("fill", "hsl(var(--foreground))");
 
       // Add access count badges
       nodeEnter.append("circle")
         .attr("r", 8)
-        .attr("cx", 15)
-        .attr("cy", -8)
+        .attr("cx", 20)
+        .attr("cy", -10)
         .style("fill", "hsl(var(--accent))")
-        .style("opacity", d => d.data.data?.accessCount ? 0.8 : 0);
+        .style("opacity", (d: any) => d.data.data?.accessCount ? 0.8 : 0);
 
       nodeEnter.append("text")
-        .attr("x", 15)
-        .attr("y", -5)
+        .attr("x", 20)
+        .attr("y", -7)
         .attr("text-anchor", "middle")
-        .text(d => d.data.data?.accessCount || "")
+        .text((d: any) => d.data.data?.accessCount || "")
         .style("font-size", "10px")
         .style("fill", "hsl(var(--accent-foreground))")
-        .style("opacity", d => d.data.data?.accessCount ? 1 : 0);
+        .style("opacity", (d: any) => d.data.data?.accessCount ? 1 : 0);
 
       // Transition nodes to their new position
-      const nodeUpdate = nodeEnter.merge(node as any);
+      const nodeUpdate = node.merge(nodeEnter as any).transition(transition)
+        .attr("transform", (d: any) => `translate(${d.y},${d.x})`)
+        .attr("fill-opacity", 1)
+        .attr("stroke-opacity", 1);
 
-      nodeUpdate.transition()
-        .duration(750)
-        .attr("transform", d => `translate(${d.y},${d.x})`);
-
+      // Update circle colors
       nodeUpdate.select("circle")
-        .transition()
-        .duration(750)
-        .attr("r", 6)
-        .style("fill", d => (d as any)._children ? "hsl(var(--primary))" : "hsl(var(--muted))");
+        .attr("fill", (d: any) => d._children ? "hsl(var(--primary))" : "hsl(var(--muted))");
 
-      nodeUpdate.select("text")
-        .transition()
-        .duration(750)
-        .style("fill-opacity", 1);
+      // Transition exiting nodes to the parent's new position
+      const nodeExit = node.exit().transition(transition).remove()
+        .attr("transform", (d: any) => `translate(${source.y},${source.x})`)
+        .attr("fill-opacity", 0)
+        .attr("stroke-opacity", 0);
 
-      // Transition exiting nodes
-      const nodeExit = node.exit().transition()
-        .duration(750)
-        .attr("transform", d => `translate(${source.y},${source.x})`)
-        .remove();
+      // Update the links
+      const link = gLink.selectAll("path")
+        .data(links, (d: any) => d.target.id);
 
-      nodeExit.select("circle")
-        .attr("r", 1e-6);
+      // Enter any new links at the parent's previous position
+      const linkEnter = link.enter().append("path")
+        .attr("d", (d: any) => {
+          const o = { x: source.x0 || 0, y: source.y0 || 0 };
+          return diagonal({ source: o, target: o });
+        });
 
-      nodeExit.select("text")
-        .style("fill-opacity", 1e-6);
+      // Transition links to their new position
+      link.merge(linkEnter as any).transition(transition)
+        .attr("d", diagonal);
 
-      // Update links
-      const link = g.selectAll("path.link")
-        .data(links, (d: any) => d.id);
-
-      const linkEnter = link.enter().insert("path", "g")
-        .attr("class", "link")
-        .attr("d", d => {
-          const o = { x: (source as any).x0 || 0, y: (source as any).y0 || 0 };
-          return diagonal(o, o);
-        })
-        .style("fill", "none")
-        .style("stroke", "hsl(var(--border))")
-        .style("stroke-width", "2px");
-
-      const linkUpdate = linkEnter.merge(link as any);
-
-      linkUpdate.transition()
-        .duration(750)
-        .attr("d", d => diagonal(d, d.parent!));
-
-      link.exit().transition()
-        .duration(750)
-        .attr("d", d => {
+      // Transition exiting links to the parent's new position
+      link.exit().transition(transition).remove()
+        .attr("d", (d: any) => {
           const o = { x: source.x, y: source.y };
-          return diagonal(o, o);
-        })
-        .remove();
+          return diagonal({ source: o, target: o });
+        });
 
-      // Store old positions for transition
-      nodes.forEach(d => {
-        (d as any).x0 = d.x;
-        (d as any).y0 = d.y;
+      // Stash the old positions for transition
+      root.eachBefore((d: any) => {
+        d.x0 = d.x;
+        d.y0 = d.y;
       });
     };
 
-    // Diagonal link generator
-    const diagonal = (s: any, d: any) => {
-      const path = `M ${s.y} ${s.x}
-                   C ${(s.y + d.y) / 2} ${s.x},
-                     ${(s.y + d.y) / 2} ${d.x},
-                     ${d.y} ${d.x}`;
-      return path;
-    };
-
-    // Toggle children on click
-    function click(event: any, d: any) {
-      if (d.children) {
-        d._children = d.children;
-        d.children = null;
-      } else {
-        d.children = d._children;
-        d._children = null;
-      }
-      update(d);
-    }
-
-    // Initial render
-    update(root);
+    // Initial update
+    update(null, root);
 
   }, [generateTreeData, width, height]);
 
