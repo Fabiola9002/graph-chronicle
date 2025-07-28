@@ -229,25 +229,9 @@ const [filters, setFilters] = useState({
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-12 gap-6">
-          {/* Left Panel - Controls */}
-          <div className="col-span-3 space-y-4">
-            <SearchPanel 
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              filters={filters}
-              onFiltersChange={setFilters}
-              data={accessData}
-            />
-            
-            <JourneyInsights 
-              insights={insights}
-              loading={loading}
-              onDiscoverSimilar={handleJourneyInsight}
-            />
-          </div>
 
           {/* Center Panel - Visualizations */}
-          <div className="col-span-7">
+          <div className="col-span-10">
             <Card className="shadow-elegant">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -341,7 +325,7 @@ const [filters, setFilters] = useState({
                 </div>
               </CardHeader>
               
-              <CardContent className="h-[500px]">
+              <CardContent className="h-[600px]">
                 {selectedVisualization === "heatmap" && (
                   <AccessHeatmap data={filteredData} />
                 )}
@@ -365,8 +349,8 @@ const [filters, setFilters] = useState({
                       duration: d.duration
                     }))}
                     hierarchy={treeHierarchy}
-                    width={800}
-                    height={468}
+                    width={1000}
+                    height={568}
                   />
                 )}
               </CardContent>
