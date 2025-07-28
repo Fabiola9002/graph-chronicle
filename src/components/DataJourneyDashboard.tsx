@@ -10,6 +10,8 @@ import { AccessHeatmap } from "./visualizations/AccessHeatmap";
 import { UserDatasetFlow } from "./visualizations/UserDatasetFlow";
 import { TimelineChart } from "./visualizations/TimelineChart";
 import { SankeyDiagram } from "./visualizations/SankeyDiagram";
+import TimelineCollapsibleTree from "./visualizations/TimelineCollapsibleTree";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { MetricCards } from "./MetricCards";
 import { SearchPanel } from "./SearchPanel";
 import { JourneyInsights } from "./JourneyInsights";
@@ -253,14 +255,57 @@ const DataJourneyDashboard = () => {
                     Data Access Visualization
                   </CardTitle>
                   
-                  <Tabs value={selectedVisualization} onValueChange={setSelectedVisualization}>
-                    <TabsList>
-                      <TabsTrigger value="heatmap">Heatmap</TabsTrigger>
-                      <TabsTrigger value="flow">Flow</TabsTrigger>
-                      <TabsTrigger value="timeline">Timeline</TabsTrigger>
-                      <TabsTrigger value="sankey">Sankey</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
+                  <Carousel className="w-full max-w-xs">
+                    <CarouselContent>
+                      <CarouselItem>
+                        <Button 
+                          variant={selectedVisualization === "heatmap" ? "default" : "outline"}
+                          onClick={() => setSelectedVisualization("heatmap")}
+                          size="sm"
+                        >
+                          Heatmap
+                        </Button>
+                      </CarouselItem>
+                      <CarouselItem>
+                        <Button 
+                          variant={selectedVisualization === "flow" ? "default" : "outline"}
+                          onClick={() => setSelectedVisualization("flow")}
+                          size="sm"
+                        >
+                          Flow
+                        </Button>
+                      </CarouselItem>
+                      <CarouselItem>
+                        <Button 
+                          variant={selectedVisualization === "timeline" ? "default" : "outline"}
+                          onClick={() => setSelectedVisualization("timeline")}
+                          size="sm"
+                        >
+                          Timeline
+                        </Button>
+                      </CarouselItem>
+                      <CarouselItem>
+                        <Button 
+                          variant={selectedVisualization === "sankey" ? "default" : "outline"}
+                          onClick={() => setSelectedVisualization("sankey")}
+                          size="sm"
+                        >
+                          Sankey
+                        </Button>
+                      </CarouselItem>
+                      <CarouselItem>
+                        <Button 
+                          variant={selectedVisualization === "tree" ? "default" : "outline"}
+                          onClick={() => setSelectedVisualization("tree")}
+                          size="sm"
+                        >
+                          Tree
+                        </Button>
+                      </CarouselItem>
+                    </CarouselContent>
+                    <CarouselPrevious />
+                    <CarouselNext />
+                  </Carousel>
                 </div>
                 
                 <div className="flex items-center gap-4">
@@ -292,6 +337,20 @@ const DataJourneyDashboard = () => {
                 )}
                 {selectedVisualization === "sankey" && (
                   <SankeyDiagram data={filteredData} />
+                )}
+                {selectedVisualization === "tree" && (
+                  <TimelineCollapsibleTree 
+                    data={filteredData.map(d => ({
+                      user: d.userName,
+                      dataset: d.datasetName,
+                      accessType: d.accessType === 'execute' ? 'read' : d.accessType,
+                      timestamp: d.timestamp,
+                      department: d.department,
+                      duration: d.duration
+                    }))}
+                    width={700}
+                    height={384}
+                  />
                 )}
               </CardContent>
             </Card>
