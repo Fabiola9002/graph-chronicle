@@ -49,7 +49,7 @@ export interface Journey {
 const DataJourneyDashboard = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [timeRange, setTimeRange] = useState([0, 100]);
-  const [selectedVisualization, setSelectedVisualization] = useState("heatmap");
+  const [selectedVisualization, setSelectedVisualization] = useState("tree");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [selectedDataset, setSelectedDataset] = useState<string | null>(null);
