@@ -2,23 +2,11 @@ import { DatasetAccess } from "../DataJourneyDashboard";
 import { useMemo, useState, useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, RotateCcw, ChevronRight, ChevronDown } from "lucide-react";
+import { Play, Pause, RotateCcw, ChevronUp, ChevronDown } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
-import { Checkbox } from "@/components/ui/checkbox";
 
 interface UserJourneyFlowProps {
   data: DatasetAccess[];
-}
-
-interface TreeNode {
-  id: string;
-  label: string;
-  type: 'root' | 'user' | 'platform' | 'dataset';
-  children?: TreeNode[];
-  parent?: string;
-  isExpanded?: boolean;
-  isSelected?: boolean;
-  data?: DatasetAccess[];
 }
 
 interface TimeBucket {
@@ -30,82 +18,35 @@ interface TimeBucket {
 export const UserJourneyFlow = ({ data }: UserJourneyFlowProps) => {
   const [currentHour, setCurrentHour] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [selectedDatasets, setSelectedDatasets] = useState<Set<string>>(new Set());
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(['root']));
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+  const [scrollOffset, setScrollOffset] = useState(0);
   const svgRef = useRef<SVGSVGElement>(null);
   
-  // Generate tree structure
-  const treeData = useMemo(() => {
-    const userMap = new Map<string, Set<string>>();
-    const platformMap = new Map<string, Map<string, Set<string>>>();
+  const maxNodesVisible = 7;
+  const nodeHeight = 80;
+
+  // Get unique users for the left side nodes
+  const uniqueUsers = useMemo(() => {
+    const userMap = new Map<string, { 
+      name: string; 
+      datasets: Set<string>; 
+      accesses: DatasetAccess[] 
+    }>();
     
     data.forEach(access => {
       if (!userMap.has(access.userName)) {
-        userMap.set(access.userName, new Set());
-      }
-      userMap.get(access.userName)?.add(access.datasetType);
-      
-      if (!platformMap.has(access.userName)) {
-        platformMap.set(access.userName, new Map());
-      }
-      if (!platformMap.get(access.userName)?.has(access.datasetType)) {
-        platformMap.get(access.userName)?.set(access.datasetType, new Set());
-      }
-      platformMap.get(access.userName)?.get(access.datasetType)?.add(access.datasetName);
-    });
-    
-    const rootNode: TreeNode = {
-      id: 'root',
-      label: 'Data Access Tree',
-      type: 'root',
-      isExpanded: true,
-      children: []
-    };
-    
-    userMap.forEach((platforms, userName) => {
-      const userNode: TreeNode = {
-        id: `user-${userName}`,
-        label: userName,
-        type: 'user',
-        parent: 'root',
-        children: []
-      };
-      
-      platforms.forEach(platform => {
-        const platformNode: TreeNode = {
-          id: `platform-${userName}-${platform}`,
-          label: platform,
-          type: 'platform',
-          parent: userNode.id,
-          children: []
-        };
-        
-        const datasets = platformMap.get(userName)?.get(platform) || new Set();
-        datasets.forEach(dataset => {
-          const datasetAccesses = data.filter(d => 
-            d.userName === userName && 
-            d.datasetType === platform && 
-            d.datasetName === dataset
-          );
-          
-          const datasetNode: TreeNode = {
-            id: `dataset-${userName}-${platform}-${dataset}`,
-            label: dataset,
-            type: 'dataset',
-            parent: platformNode.id,
-            data: datasetAccesses
-          };
-          
-          platformNode.children?.push(datasetNode);
+        userMap.set(access.userName, {
+          name: access.userName,
+          datasets: new Set(),
+          accesses: []
         });
-        
-        userNode.children?.push(platformNode);
-      });
-      
-      rootNode.children?.push(userNode);
+      }
+      const user = userMap.get(access.userName)!;
+      user.datasets.add(access.datasetName);
+      user.accesses.push(access);
     });
     
-    return rootNode;
+    return Array.from(userMap.values());
   }, [data]);
 
   // Generate time buckets based on current hour
@@ -122,13 +63,13 @@ export const UserJourneyFlow = ({ data }: UserJourneyFlowProps) => {
       bucketEnd.setHours(hour + 1, 0, 0, 0);
       
       const relevantAccesses = data.filter(access => {
-        if (selectedDatasets.size === 0) return false;
+        if (selectedUsers.size === 0) return false;
         
         const accessTime = new Date(access.timestamp);
         const isInTimeRange = accessTime >= bucketStart && accessTime < bucketEnd;
-        const isSelectedDataset = selectedDatasets.has(access.datasetName);
+        const isSelectedUser = selectedUsers.has(access.userName);
         
-        return isInTimeRange && isSelectedDataset;
+        return isInTimeRange && isSelectedUser;
       });
       
       buckets.push({
@@ -139,7 +80,7 @@ export const UserJourneyFlow = ({ data }: UserJourneyFlowProps) => {
     }
     
     return buckets;
-  }, [data, currentHour, selectedDatasets]);
+  }, [data, currentHour, selectedUsers]);
 
   // Auto-play functionality
   useEffect(() => {
@@ -161,116 +102,29 @@ export const UserJourneyFlow = ({ data }: UserJourneyFlowProps) => {
     setIsPlaying(false);
   };
 
-  const toggleNode = (nodeId: string) => {
-    setExpandedNodes(prev => {
-      const newExpanded = new Set(prev);
-      if (newExpanded.has(nodeId)) {
-        newExpanded.delete(nodeId);
-      } else {
-        newExpanded.add(nodeId);
-      }
-      return newExpanded;
-    });
-  };
-
-  const toggleDatasetSelection = (datasetName: string) => {
-    setSelectedDatasets(prev => {
+  const toggleUserSelection = (userName: string) => {
+    setSelectedUsers(prev => {
       const newSelected = new Set(prev);
-      if (newSelected.has(datasetName)) {
-        newSelected.delete(datasetName);
+      if (newSelected.has(userName)) {
+        newSelected.delete(userName);
       } else {
-        newSelected.add(datasetName);
+        newSelected.add(userName);
       }
       return newSelected;
     });
   };
 
-  const renderTreeNode = (node: TreeNode, level: number = 0): JSX.Element => {
-    const hasChildren = node.children && node.children.length > 0;
-    const isExpanded = expandedNodes.has(node.id);
-    const indent = level * 20;
-
-    return (
-      <div key={node.id} className="select-none">
-        <div 
-          className="flex items-center gap-2 py-1 px-2 hover:bg-muted/50 rounded cursor-pointer"
-          style={{ paddingLeft: `${indent + 8}px` }}
-        >
-          {hasChildren && (
-            <button
-              onClick={() => toggleNode(node.id)}
-              className="p-0.5 hover:bg-muted rounded"
-            >
-              {isExpanded ? (
-                <ChevronDown className="w-3 h-3" />
-              ) : (
-                <ChevronRight className="w-3 h-3" />
-              )}
-            </button>
-          )}
-          
-          {!hasChildren && <div className="w-4" />}
-          
-          {node.type === 'dataset' && (
-            <Checkbox
-              checked={selectedDatasets.has(node.label)}
-              onCheckedChange={() => toggleDatasetSelection(node.label)}
-              className="w-3 h-3"
-            />
-          )}
-          
-          <span 
-            className={`text-sm ${
-              node.type === 'root' ? 'font-bold text-foreground' :
-              node.type === 'user' ? 'font-medium text-primary' :
-              node.type === 'platform' ? 'text-accent' :
-              'text-muted-foreground'
-            }`}
-          >
-            {node.label}
-          </span>
-          
-          {node.type === 'dataset' && selectedDatasets.has(node.label) && (
-            <Badge variant="secondary" className="text-xs ml-auto">
-              {node.data?.length || 0}
-            </Badge>
-          )}
-        </div>
-        
-        {hasChildren && isExpanded && (
-          <div>
-            {node.children?.map(child => renderTreeNode(child, level + 1))}
-          </div>
-        )}
-      </div>
-    );
+  const handleScrollUp = () => {
+    setScrollOffset(prev => Math.max(0, prev - 1));
   };
 
-  const getConnectionPath = (startY: number, bucketIndex: number) => {
-    const startX = 350;
-    const endX = 450 + (bucketIndex * 200);
-    const endY = 100;
-    const midX = (startX + endX) / 2;
-    
-    return `M ${startX} ${startY} Q ${midX} ${startY} ${endX} ${endY}`;
+  const handleScrollDown = () => {
+    setScrollOffset(prev => Math.min(uniqueUsers.length - maxNodesVisible, prev + 1));
   };
 
-  // Get unique datasets for the left side nodes
-  const uniqueDatasets = useMemo(() => {
-    const datasetMap = new Map<string, { name: string; accesses: DatasetAccess[] }>();
-    
-    data.forEach(access => {
-      if (!datasetMap.has(access.datasetName)) {
-        datasetMap.set(access.datasetName, {
-          name: access.datasetName,
-          accesses: []
-        });
-      }
-      datasetMap.get(access.datasetName)?.accesses.push(access);
-    });
-    
-    return Array.from(datasetMap.values());
-  }, [data]);
+  const visibleUsers = uniqueUsers.slice(scrollOffset, scrollOffset + maxNodesVisible);
+  const canScrollUp = scrollOffset > 0;
+  const canScrollDown = scrollOffset < uniqueUsers.length - maxNodesVisible;
 
   return (
     <div className="w-full h-full p-4">
@@ -310,20 +164,76 @@ export const UserJourneyFlow = ({ data }: UserJourneyFlowProps) => {
         </div>
       </div>
       
-      <div className="relative">
+      <div className="relative w-full overflow-x-auto">
+        {/* Scroll controls */}
+        <div className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 flex flex-col gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleScrollUp}
+            disabled={!canScrollUp}
+            className="w-8 h-8 p-0"
+          >
+            <ChevronUp className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleScrollDown}
+            disabled={!canScrollDown}
+            className="w-8 h-8 p-0"
+          >
+            <ChevronDown className="w-4 h-4" />
+          </Button>
+        </div>
+
         <svg
           ref={svgRef}
-          width="100%"
+          width="1200"
           height="600"
           className="border border-border rounded-lg bg-card"
         >
-          {/* Dataset nodes on the left */}
-          {uniqueDatasets.map((dataset, index) => {
-            const y = 100 + (index * 80);
-            const isSelected = selectedDatasets.has(dataset.name);
+          {/* Arrow marker definitions - must be first */}
+          <defs>
+            <marker
+              id="readArrow"
+              markerWidth={8}
+              markerHeight={6}
+              refX={7}
+              refY={3}
+              orient="auto"
+              markerUnits="strokeWidth"
+            >
+              <polygon
+                points="0 0, 8 3, 0 6"
+                fill="hsl(var(--chart-2))"
+                stroke="hsl(var(--chart-2))"
+              />
+            </marker>
+            <marker
+              id="modifyArrow"
+              markerWidth={8}
+              markerHeight={6}
+              refX={7}
+              refY={3}
+              orient="auto"
+              markerUnits="strokeWidth"
+            >
+              <polygon
+                points="0 0, 8 3, 0 6"
+                fill="hsl(var(--chart-1))"
+                stroke="hsl(var(--chart-1))"
+              />
+            </marker>
+          </defs>
+
+          {/* User nodes on the left */}
+          {visibleUsers.map((user, index) => {
+            const y = 80 + (index * nodeHeight);
+            const isSelected = selectedUsers.has(user.name);
             
             return (
-              <g key={dataset.name}>
+              <g key={user.name}>
                 <circle
                   cx={125}
                   cy={y}
@@ -332,7 +242,7 @@ export const UserJourneyFlow = ({ data }: UserJourneyFlowProps) => {
                   stroke={isSelected ? 'hsl(var(--primary-foreground))' : 'hsl(var(--border))'}
                   strokeWidth={3}
                   className="cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => toggleDatasetSelection(dataset.name)}
+                  onClick={() => toggleUserSelection(user.name)}
                 />
                 <text
                   x={125}
@@ -341,9 +251,9 @@ export const UserJourneyFlow = ({ data }: UserJourneyFlowProps) => {
                   fontSize="11"
                   fill={isSelected ? 'hsl(var(--primary-foreground))' : 'hsl(var(--foreground))'}
                   className="cursor-pointer font-medium"
-                  onClick={() => toggleDatasetSelection(dataset.name)}
+                  onClick={() => toggleUserSelection(user.name)}
                 >
-                  {dataset.name.length > 8 ? dataset.name.substring(0, 8) + '...' : dataset.name}
+                  {user.name.length > 8 ? user.name.substring(0, 8) + '...' : user.name}
                 </text>
                 <text
                   x={125}
@@ -352,9 +262,20 @@ export const UserJourneyFlow = ({ data }: UserJourneyFlowProps) => {
                   fontSize="9"
                   fill={isSelected ? 'hsl(var(--primary-foreground) / 0.8)' : 'hsl(var(--muted-foreground))'}
                   className="cursor-pointer"
-                  onClick={() => toggleDatasetSelection(dataset.name)}
+                  onClick={() => toggleUserSelection(user.name)}
                 >
-                  {dataset.accesses.length}
+                  {user.datasets.size} datasets
+                </text>
+                <text
+                  x={125}
+                  y={y + 20}
+                  textAnchor="middle"
+                  fontSize="8"
+                  fill={isSelected ? 'hsl(var(--primary-foreground) / 0.6)' : 'hsl(var(--muted-foreground))'}
+                  className="cursor-pointer"
+                  onClick={() => toggleUserSelection(user.name)}
+                >
+                  {user.accesses.length} total
                 </text>
               </g>
             );
@@ -362,7 +283,7 @@ export const UserJourneyFlow = ({ data }: UserJourneyFlowProps) => {
 
           {/* Time bucket columns */}
           {timeBuckets.map((bucket, index) => {
-            const x = 350 + (index * 200);
+            const x = 350 + (index * 250);
             const accesses = bucket.accesses;
             
             return (
@@ -371,7 +292,7 @@ export const UserJourneyFlow = ({ data }: UserJourneyFlowProps) => {
                 <rect
                   x={x}
                   y={50}
-                  width={180}
+                  width={220}
                   height={500}
                   rx={8}
                   fill="hsl(var(--card))"
@@ -381,7 +302,7 @@ export const UserJourneyFlow = ({ data }: UserJourneyFlowProps) => {
                 
                 {/* Hour label */}
                 <text
-                  x={x + 90}
+                  x={x + 110}
                   y={40}
                   textAnchor="middle"
                   fontSize="14"
@@ -393,7 +314,7 @@ export const UserJourneyFlow = ({ data }: UserJourneyFlowProps) => {
                 
                 {/* Access count badge */}
                 <rect
-                  x={x + 60}
+                  x={x + 80}
                   y={60}
                   width={60}
                   height={20}
@@ -401,7 +322,7 @@ export const UserJourneyFlow = ({ data }: UserJourneyFlowProps) => {
                   fill={accesses.length > 0 ? 'hsl(var(--primary))' : 'hsl(var(--muted))'}
                 />
                 <text
-                  x={x + 90}
+                  x={x + 110}
                   y={73}
                   textAnchor="middle"
                   fontSize="10"
@@ -411,84 +332,84 @@ export const UserJourneyFlow = ({ data }: UserJourneyFlowProps) => {
                 </text>
                 
                 {/* Access details */}
-                {accesses.slice(0, 10).map((access, accessIndex) => {
-                  const y = 100 + (accessIndex * 40);
+                {accesses.slice(0, 12).map((access, accessIndex) => {
+                  const y = 100 + (accessIndex * 35);
                   const isRead = access.accessType.toLowerCase().includes('read');
                   
                   return (
                     <g key={`${access.id}-${accessIndex}`}>
                       <circle
-                        cx={x + 90}
+                        cx={x + 110}
                         cy={y + 15}
-                        r={18}
+                        r={16}
                         fill={isRead ? 'hsl(var(--chart-2))' : 'hsl(var(--chart-1))'}
                         stroke="hsl(var(--border))"
                         strokeWidth={2}
                       />
                       <text
-                        x={x + 90}
+                        x={x + 110}
                         y={y + 12}
-                        textAnchor="middle"
-                        fontSize="9"
-                        fill="white"
-                        fontWeight="medium"
-                      >
-                        {access.userName.substring(0, 4)}
-                      </text>
-                      <text
-                        x={x + 90}
-                        y={y + 22}
                         textAnchor="middle"
                         fontSize="8"
                         fill="white"
+                        fontWeight="medium"
                       >
-                        {isRead ? 'READ' : 'MOD'}
+                        {access.datasetName.substring(0, 3)}
+                      </text>
+                      <text
+                        x={x + 110}
+                        y={y + 20}
+                        textAnchor="middle"
+                        fontSize="7"
+                        fill="white"
+                      >
+                        {isRead ? 'R' : 'M'}
                       </text>
                     </g>
                   );
                 })}
                 
-                {accesses.length > 10 && (
+                {accesses.length > 12 && (
                   <text
-                    x={x + 90}
+                    x={x + 110}
                     y={520}
                     textAnchor="middle"
                     fontSize="10"
                     fill="hsl(var(--muted-foreground))"
                   >
-                    +{accesses.length - 10} more
+                    +{accesses.length - 12} more
                   </text>
                 )}
               </g>
             );
           })}
 
-          {/* Edges from selected datasets to individual access circles */}
-          {Array.from(selectedDatasets).map((datasetName) => {
-            const datasetIndex = uniqueDatasets.findIndex(d => d.name === datasetName);
-            if (datasetIndex === -1) return null;
+          {/* Edges from selected users to individual access circles */}
+          {Array.from(selectedUsers).map((userName) => {
+            const userIndex = visibleUsers.findIndex(u => u.name === userName);
+            if (userIndex === -1) return null;
             
-            const startY = 100 + (datasetIndex * 80);
-            const startX = 160; // Right edge of dataset circle
+            const startY = 80 + (userIndex * nodeHeight);
+            const startX = 160; // Right edge of user circle
             
             return timeBuckets.map((bucket, bucketIndex) => {
-              const datasetAccesses = bucket.accesses.filter(a => a.datasetName === datasetName);
-              if (datasetAccesses.length === 0) return null;
+              const userAccesses = bucket.accesses.filter(a => a.userName === userName);
+              if (userAccesses.length === 0) return null;
               
-              const bucketX = 350 + (bucketIndex * 200);
+              const bucketX = 350 + (bucketIndex * 250);
               
-              return datasetAccesses.slice(0, 10).map((access, accessIndex) => {
-                const accessY = 100 + (accessIndex * 40) + 15;
-                const accessX = bucketX + 90;
+              return userAccesses.slice(0, 12).map((access, accessIndex) => {
+                const accessY = 100 + (accessIndex * 35) + 15;
+                const accessX = bucketX + 110;
                 const isRead = access.accessType.toLowerCase().includes('read');
                 
                 // Calculate curved path
                 const midX = (startX + accessX) / 2;
                 const controlY = Math.min(startY, accessY) - 30;
-                const path = `M ${startX} ${startY} Q ${midX} ${controlY} ${accessX - 18} ${accessY}`;
+                const path = `M ${startX} ${startY} Q ${midX} ${controlY} ${accessX - 16} ${accessY}`;
                 
                 return (
-                  <g key={`edge-${datasetName}-${bucketIndex}-${accessIndex}`}>
+                  <g key={`edge-${userName}-${bucketIndex}-${accessIndex}`}>
                     <path
                       d={path}
                       fill="none"
@@ -504,65 +425,47 @@ export const UserJourneyFlow = ({ data }: UserJourneyFlowProps) => {
             });
           })}
 
-          {/* Arrow marker definitions */}
-          <defs>
-            <marker
-              id="readArrow"
-              markerWidth={10}
-              markerHeight={7}
-              refX={9}
-              refY={3.5}
-              orient="auto"
-            >
-              <polygon
-                points="0 0, 10 3.5, 0 7"
-                fill="hsl(var(--chart-2))"
-              />
-            </marker>
-            <marker
-              id="modifyArrow"
-              markerWidth={10}
-              markerHeight={7}
-              refX={9}
-              refY={3.5}
-              orient="auto"
-            >
-              <polygon
-                points="0 0, 10 3.5, 0 7"
-                fill="hsl(var(--chart-1))"
-              />
-            </marker>
-          </defs>
-          
           {/* Legend */}
           <g transform="translate(50, 550)">
-            <circle cx={5} cy={5} r={4} fill="hsl(var(--primary))" />
+            <circle cx={5} cy={5} r={4} fill="hsl(var(--chart-2))" />
             <text x={15} y={9} fontSize="10" fill="hsl(var(--foreground))">Read</text>
             
-            <circle cx={60} cy={5} r={4} fill="hsl(var(--destructive))" />
+            <circle cx={60} cy={5} r={4} fill="hsl(var(--chart-1))" />
             <text x={70} y={9} fontSize="10" fill="hsl(var(--foreground))">Modify</text>
+            
+            <line x1={120} y1={5} x2={140} y2={5} stroke="hsl(var(--chart-2))" strokeWidth={2} />
+            <text x={145} y={9} fontSize="10" fill="hsl(var(--foreground))">Solid = Read</text>
+            
+            <line x1={210} y1={5} x2={230} y2={5} stroke="hsl(var(--chart-1))" strokeWidth={2} strokeDasharray="3,3" />
+            <text x={235} y={9} fontSize="10" fill="hsl(var(--foreground))">Dashed = Modify</text>
           </g>
         </svg>
       </div>
       
-      {selectedDatasets.size === 0 && (
+      {selectedUsers.size === 0 && (
         <div className="text-center text-muted-foreground text-sm py-8">
-          Click on dataset nodes to see their access patterns across time buckets
+          Click on user nodes to see their dataset access patterns across time buckets
         </div>
       )}
       
-      {selectedDatasets.size > 0 && (
+      {selectedUsers.size > 0 && (
         <div className="mt-4 pt-4 border-t border-border">
           <div className="text-xs text-muted-foreground mb-2">
-            Selected Datasets ({selectedDatasets.size})
+            Selected Users ({selectedUsers.size})
           </div>
           <div className="flex flex-wrap gap-1">
-            {Array.from(selectedDatasets).map(dataset => (
-              <Badge key={dataset} variant="outline" className="text-xs">
-                {dataset}
+            {Array.from(selectedUsers).map(user => (
+              <Badge key={user} variant="outline" className="text-xs">
+                {user}
               </Badge>
             ))}
           </div>
+        </div>
+      )}
+      
+      {uniqueUsers.length > maxNodesVisible && (
+        <div className="text-xs text-muted-foreground mt-2 text-center">
+          Showing {scrollOffset + 1}-{Math.min(scrollOffset + maxNodesVisible, uniqueUsers.length)} of {uniqueUsers.length} users
         </div>
       )}
     </div>
