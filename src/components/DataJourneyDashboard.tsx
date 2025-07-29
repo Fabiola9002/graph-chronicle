@@ -11,6 +11,7 @@ import { UserDatasetFlow } from "./visualizations/UserDatasetFlow";
 import { TimelineChart } from "./visualizations/TimelineChart";
 import { SankeyDiagram } from "./visualizations/SankeyDiagram";
 import TimelineCollapsibleTree from "./visualizations/TimelineCollapsibleTree";
+import { UserJourneyFlow } from "./visualizations/UserJourneyFlow";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { MetricCards } from "./MetricCards";
 import { SearchPanel } from "./SearchPanel";
@@ -49,7 +50,7 @@ export interface Journey {
 const DataJourneyDashboard = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [timeRange, setTimeRange] = useState([0, 100]);
-  const [selectedVisualization, setSelectedVisualization] = useState("tree");
+  const [selectedVisualization, setSelectedVisualization] = useState("journey");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [selectedDataset, setSelectedDataset] = useState<string | null>(null);
@@ -278,15 +279,24 @@ const [filters, setFilters] = useState({
                           Sankey
                         </Button>
                       </CarouselItem>
-                      <CarouselItem>
-                        <Button 
-                          variant={selectedVisualization === "tree" ? "default" : "outline"}
-                          onClick={() => setSelectedVisualization("tree")}
-                          size="sm"
-                        >
-                          Tree
-                        </Button>
-                      </CarouselItem>
+                       <CarouselItem>
+                         <Button 
+                           variant={selectedVisualization === "tree" ? "default" : "outline"}
+                           onClick={() => setSelectedVisualization("tree")}
+                           size="sm"
+                         >
+                           Tree
+                         </Button>
+                       </CarouselItem>
+                       <CarouselItem>
+                         <Button 
+                           variant={selectedVisualization === "journey" ? "default" : "outline"}
+                           onClick={() => setSelectedVisualization("journey")}
+                           size="sm"
+                         >
+                           Journey
+                         </Button>
+                       </CarouselItem>
                     </CarouselContent>
                     <CarouselPrevious />
                     <CarouselNext />
@@ -350,6 +360,9 @@ const [filters, setFilters] = useState({
                     }))}
                     hierarchy={treeHierarchy}
                   />
+                )}
+                {selectedVisualization === "journey" && (
+                  <UserJourneyFlow data={filteredData} />
                 )}
               </CardContent>
             </Card>
