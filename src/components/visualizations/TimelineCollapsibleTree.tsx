@@ -518,6 +518,8 @@ const TimelineCollapsibleTree: React.FC<TimelineCollapsibleTreeProps> = ({
           }
         }
         setCheckedOrgs(newCheckedOrgs);
+        
+        // Only update this specific node, not the entire tree
         update(d);
       } else {
         // Regular expand/collapse for non-org nodes
