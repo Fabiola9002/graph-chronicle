@@ -330,8 +330,9 @@ const TimelineCollapsibleTree: React.FC<TimelineCollapsibleTreeProps> = ({
       nodeEnter.each(function(d: any) {
         const selection = d3.select(this);
         const isOrgNode = d.depth === 2 && hierarchy === 'dataset-orgs-users'; // Org level in dataset hierarchy
+        const isDatasetNode = d.depth === 2 && hierarchy === 'user-platform-dataset'; // Dataset level in user hierarchy
         
-        if (isOrgNode) {
+        if (isOrgNode || isDatasetNode) {
           // Create checkbox for organization nodes
           const isChecked = checkedOrgs.has(d.data.id);
           
@@ -471,8 +472,9 @@ const TimelineCollapsibleTree: React.FC<TimelineCollapsibleTreeProps> = ({
     // Toggle children on click
     function click(event: any, d: any) {
       const isOrgNode = d.depth === 2 && hierarchy === 'dataset-orgs-users';
+      const isDatasetNode = d.depth === 2 && hierarchy === 'user-platform-dataset';
       
-      if (isOrgNode) {
+      if (isOrgNode || isDatasetNode) {
         // Handle checkbox toggle for organization nodes
         if (localCheckedOrgs.has(d.data.id)) {
           localCheckedOrgs.delete(d.data.id);
@@ -483,40 +485,75 @@ const TimelineCollapsibleTree: React.FC<TimelineCollapsibleTreeProps> = ({
           }
         } else {
           localCheckedOrgs.add(d.data.id);
-          // Show user children with populated reads/modifies data
-          if (d._children) {
-            d.children = d._children;
-            d._children = null;
-            
-            // Populate reads/modifies data for users in this org
-            d.children.forEach((userNode: any) => {
-              // Filter access data for this specific user and time period
-              const userAccessData = parsedData.filter((item: any) => {
-                const itemTime = new Date(item.timestamp || item.time || item.date);
-                const isInTimeRange = itemTime >= timeRange.start && itemTime <= timeRange.end;
-                const belongsToUser = item.userId === userNode.data.id || 
-                                    item.user === userNode.data.id ||
-                                    item.user_id === userNode.data.id;
-                return isInTimeRange && belongsToUser;
-              });
+          
+          if (isOrgNode) {
+            // Show user children with populated reads/modifies data for organization
+            if (d._children) {
+              d.children = d._children;
+              d._children = null;
               
-              // Add reads/modifies as children to user nodes
-              const accessNodes = userAccessData.map((access: any) => ({
-                id: `${userNode.data.id}-${access.action || access.type}-${access.timestamp || access.time}`,
-                name: `${access.action || access.type}: ${access.resource || access.dataset || access.table}`,
-                type: access.action || access.type,
-                timestamp: access.timestamp || access.time || access.date,
-                details: access
-              }));
-              
-              if (accessNodes.length > 0) {
-                userNode.children = accessNodes.map((node: any) => ({
-                  data: node,
-                  children: null,
-                  _children: null
+              // Populate reads/modifies data for users in this org
+              d.children.forEach((userNode: any) => {
+                // Filter access data for this specific user and time period
+                const userAccessData = parsedData.filter((item: any) => {
+                  const itemTime = new Date(item.timestamp || item.time || item.date);
+                  const isInTimeRange = itemTime >= timeRange.start && itemTime <= timeRange.end;
+                  const belongsToUser = item.userId === userNode.data.id || 
+                                      item.user === userNode.data.id ||
+                                      item.user_id === userNode.data.id;
+                  return isInTimeRange && belongsToUser;
+                });
+                
+                // Add reads/modifies as children to user nodes
+                const accessNodes = userAccessData.map((access: any) => ({
+                  id: `${userNode.data.id}-${access.action || access.type}-${access.timestamp || access.time}`,
+                  name: `${access.action || access.type}: ${access.resource || access.dataset || access.table}`,
+                  type: access.action || access.type,
+                  timestamp: access.timestamp || access.time || access.date,
+                  details: access
                 }));
-              }
+                
+                if (accessNodes.length > 0) {
+                  userNode.children = accessNodes.map((node: any) => ({
+                    data: node,
+                    children: null,
+                    _children: null
+                  }));
+                }
+              });
+            }
+          } else if (isDatasetNode) {
+            // Show reads/modifies for this specific dataset
+            const datasetName = d.data.name;
+            const platformName = d.parent.data.name;
+            const userName = d.parent.parent.data.name;
+            
+            // Filter access data for this specific dataset
+            const datasetAccessData = parsedData.filter((item: any) => {
+              const itemTime = new Date(item.timestamp || item.time || item.date);
+              const isInTimeRange = itemTime >= timeRange.start && itemTime <= timeRange.end;
+              const belongsToDataset = item.dataset === datasetName;
+              const belongsToUser = item.user === userName;
+              const belongsToPlatform = item.department === platformName;
+              return isInTimeRange && belongsToDataset && belongsToUser && belongsToPlatform;
             });
+            
+            // Add reads/modifies as children to dataset node
+            const accessNodes = datasetAccessData.map((access: any) => ({
+              id: `${d.data.id}-${access.accessType || access.action || access.type}-${access.timestamp || access.time}`,
+              name: `${access.accessType || access.action || access.type}: ${new Date(access.timestamp).toLocaleString()}`,
+              type: access.accessType || access.action || access.type,
+              timestamp: access.timestamp || access.time || access.date,
+              details: access
+            }));
+            
+            if (accessNodes.length > 0) {
+              d.children = accessNodes.map((node: any) => ({
+                data: node,
+                children: null,
+                _children: null
+              }));
+            }
           }
         }
         
