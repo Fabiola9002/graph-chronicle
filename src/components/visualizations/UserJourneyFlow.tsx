@@ -255,206 +255,304 @@ export const UserJourneyFlow = ({ data }: UserJourneyFlowProps) => {
     return `M ${startX} ${startY} Q ${midX} ${startY} ${endX} ${endY}`;
   };
 
+  // Get unique datasets for the left side nodes
+  const uniqueDatasets = useMemo(() => {
+    const datasetMap = new Map<string, { name: string; accesses: DatasetAccess[] }>();
+    
+    data.forEach(access => {
+      if (!datasetMap.has(access.datasetName)) {
+        datasetMap.set(access.datasetName, {
+          name: access.datasetName,
+          accesses: []
+        });
+      }
+      datasetMap.get(access.datasetName)?.accesses.push(access);
+    });
+    
+    return Array.from(datasetMap.values());
+  }, [data]);
+
   return (
-    <div className="w-full h-full flex p-4">
-      {/* Left Panel - Tree Structure */}
-      <div className="w-80 border-r border-border pr-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-medium">Data Access Tree</h3>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePlayPause}
-              className="w-8 h-8 p-0"
-            >
-              {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleReset}
-              className="w-8 h-8 p-0"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </Button>
-          </div>
+    <div className="w-full h-full p-4">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold">User Journey Flow</h3>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePlayPause}
+            className="w-8 h-8 p-0"
+          >
+            {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleReset}
+            className="w-8 h-8 p-0"
+          >
+            <RotateCcw className="w-4 h-4" />
+          </Button>
         </div>
-        
-        <div className="space-y-1 max-h-96 overflow-y-auto">
-          {renderTreeNode(treeData)}
-        </div>
-        
-        <div className="mt-4 pt-4 border-t border-border">
-          <div className="text-xs text-muted-foreground mb-2">Time Control</div>
-          <Slider
-            value={[currentHour]}
-            onValueChange={([value]) => setCurrentHour(value)}
-            max={23}
-            step={1}
-            className="w-full"
-          />
-          <div className="text-xs text-muted-foreground mt-1">
-            Current Hour: {currentHour.toString().padStart(2, '0')}:00
-          </div>
-        </div>
-        
-        {selectedDatasets.size > 0 && (
-          <div className="mt-4 pt-4 border-t border-border">
-            <div className="text-xs text-muted-foreground mb-2">
-              Selected Datasets ({selectedDatasets.size})
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {Array.from(selectedDatasets).map(dataset => (
-                <Badge key={dataset} variant="outline" className="text-xs">
-                  {dataset}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Right Panel - Time Buckets */}
-      <div className="flex-1 pl-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-medium">Time Window Analysis</h3>
-          <Badge variant="outline" className="text-xs">
-            3-Hour Window
-          </Badge>
+      <div className="mb-4">
+        <div className="text-xs text-muted-foreground mb-2">Time Control</div>
+        <Slider
+          value={[currentHour]}
+          onValueChange={([value]) => setCurrentHour(value)}
+          max={23}
+          step={1}
+          className="w-full max-w-md"
+        />
+        <div className="text-xs text-muted-foreground mt-1">
+          Current Hour: {currentHour.toString().padStart(2, '0')}:00
         </div>
-        
-        <div className="relative">
-          <svg
-            ref={svgRef}
-            width="100%"
-            height="400"
-            className="border border-border rounded-lg bg-card"
-          >
-            {/* Time bucket columns */}
-            {timeBuckets.map((bucket, index) => {
-              const x = 100 + (index * 200);
-              const accesses = bucket.accesses;
-              
-              return (
-                <g key={index}>
-                  {/* Column separator */}
-                  <line
-                    x1={x}
-                    y1={20}
-                    x2={x}
-                    y2={380}
-                    stroke="hsl(var(--border))"
-                    strokeDasharray="5,5"
-                    opacity={0.3}
-                  />
+      </div>
+      
+      <div className="relative">
+        <svg
+          ref={svgRef}
+          width="100%"
+          height="600"
+          className="border border-border rounded-lg bg-card"
+        >
+          {/* Dataset nodes on the left */}
+          {uniqueDatasets.map((dataset, index) => {
+            const y = 100 + (index * 80);
+            const isSelected = selectedDatasets.has(dataset.name);
+            
+            return (
+              <g key={dataset.name}>
+                <rect
+                  x={50}
+                  y={y - 25}
+                  width={150}
+                  height={50}
+                  rx={8}
+                  fill={isSelected ? 'hsl(var(--primary))' : 'hsl(var(--muted))'}
+                  stroke={isSelected ? 'hsl(var(--primary-foreground))' : 'hsl(var(--border))'}
+                  strokeWidth={2}
+                  className="cursor-pointer"
+                  onClick={() => toggleDatasetSelection(dataset.name)}
+                />
+                <text
+                  x={125}
+                  y={y - 5}
+                  textAnchor="middle"
+                  fontSize="12"
+                  fill={isSelected ? 'hsl(var(--primary-foreground))' : 'hsl(var(--foreground))'}
+                  className="cursor-pointer font-medium"
+                  onClick={() => toggleDatasetSelection(dataset.name)}
+                >
+                  {dataset.name}
+                </text>
+                <text
+                  x={125}
+                  y={y + 10}
+                  textAnchor="middle"
+                  fontSize="10"
+                  fill={isSelected ? 'hsl(var(--primary-foreground) / 0.8)' : 'hsl(var(--muted-foreground))'}
+                  className="cursor-pointer"
+                  onClick={() => toggleDatasetSelection(dataset.name)}
+                >
+                  {dataset.accesses.length} accesses
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Time bucket columns */}
+          {timeBuckets.map((bucket, index) => {
+            const x = 350 + (index * 200);
+            const accesses = bucket.accesses;
+            
+            return (
+              <g key={index}>
+                {/* Time bucket container */}
+                <rect
+                  x={x}
+                  y={50}
+                  width={180}
+                  height={500}
+                  rx={8}
+                  fill="hsl(var(--card))"
+                  stroke="hsl(var(--border))"
+                  strokeWidth={1}
+                />
+                
+                {/* Hour label */}
+                <text
+                  x={x + 90}
+                  y={40}
+                  textAnchor="middle"
+                  fontSize="14"
+                  fill="hsl(var(--foreground))"
+                  fontWeight="bold"
+                >
+                  {bucket.label}
+                </text>
+                
+                {/* Access count badge */}
+                <rect
+                  x={x + 60}
+                  y={60}
+                  width={60}
+                  height={20}
+                  rx={10}
+                  fill={accesses.length > 0 ? 'hsl(var(--primary))' : 'hsl(var(--muted))'}
+                />
+                <text
+                  x={x + 90}
+                  y={73}
+                  textAnchor="middle"
+                  fontSize="10"
+                  fill={accesses.length > 0 ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))'}
+                >
+                  {accesses.length} access{accesses.length !== 1 ? 'es' : ''}
+                </text>
+                
+                {/* Access details */}
+                {accesses.slice(0, 10).map((access, accessIndex) => {
+                  const y = 100 + (accessIndex * 40);
+                  const isRead = access.accessType.toLowerCase().includes('read');
                   
-                  {/* Hour label */}
+                  return (
+                    <g key={`${access.id}-${accessIndex}`}>
+                      <rect
+                        x={x + 10}
+                        y={y}
+                        width={160}
+                        height={30}
+                        rx={4}
+                        fill={isRead ? 'hsl(var(--primary) / 0.1)' : 'hsl(var(--destructive) / 0.1)'}
+                        stroke={isRead ? 'hsl(var(--primary))' : 'hsl(var(--destructive))'}
+                        strokeWidth={1}
+                      />
+                      <text
+                        x={x + 15}
+                        y={y + 12}
+                        fontSize="10"
+                        fill="hsl(var(--foreground))"
+                        fontWeight="medium"
+                      >
+                        {access.userName}
+                      </text>
+                      <text
+                        x={x + 15}
+                        y={y + 24}
+                        fontSize="9"
+                        fill="hsl(var(--muted-foreground))"
+                      >
+                        {access.accessType}
+                      </text>
+                      <circle
+                        cx={x + 155}
+                        cy={y + 15}
+                        r={5}
+                        fill={isRead ? 'hsl(var(--primary))' : 'hsl(var(--destructive))'}
+                      />
+                    </g>
+                  );
+                })}
+                
+                {accesses.length > 10 && (
                   <text
                     x={x + 90}
-                    y={15}
-                    textAnchor="middle"
-                    fontSize="12"
-                    fill="hsl(var(--foreground))"
-                    fontWeight="bold"
-                  >
-                    {bucket.label}
-                  </text>
-                  
-                  {/* Access count badge */}
-                  <rect
-                    x={x + 60}
-                    y={30}
-                    width={60}
-                    height={20}
-                    rx={10}
-                    fill={accesses.length > 0 ? 'hsl(var(--primary))' : 'hsl(var(--muted))'}
-                  />
-                  <text
-                    x={x + 90}
-                    y={43}
+                    y={520}
                     textAnchor="middle"
                     fontSize="10"
-                    fill={accesses.length > 0 ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))'}
+                    fill="hsl(var(--muted-foreground))"
                   >
-                    {accesses.length} access{accesses.length !== 1 ? 'es' : ''}
+                    +{accesses.length - 10} more
                   </text>
-                  
-                  {/* Access details */}
-                  {accesses.slice(0, 8).map((access, accessIndex) => {
-                    const y = 70 + (accessIndex * 35);
-                    const isRead = access.accessType.toLowerCase().includes('read');
-                    
-                    return (
-                      <g key={`${access.id}-${accessIndex}`}>
-                        <rect
-                          x={x + 20}
-                          y={y}
-                          width={140}
-                          height={25}
-                          rx={4}
-                          fill={isRead ? 'hsl(var(--primary) / 0.1)' : 'hsl(var(--destructive) / 0.1)'}
-                          stroke={isRead ? 'hsl(var(--primary))' : 'hsl(var(--destructive))'}
-                          strokeWidth={1}
-                        />
-                        <text
-                          x={x + 25}
-                          y={y + 12}
-                          fontSize="9"
-                          fill="hsl(var(--foreground))"
-                        >
-                          {access.userName}
-                        </text>
-                        <text
-                          x={x + 25}
-                          y={y + 22}
-                          fontSize="8"
-                          fill="hsl(var(--muted-foreground))"
-                        >
-                          {access.accessType}
-                        </text>
-                        <circle
-                          cx={x + 150}
-                          cy={y + 12}
-                          r={4}
-                          fill={isRead ? 'hsl(var(--primary))' : 'hsl(var(--destructive))'}
-                        />
-                      </g>
-                    );
-                  })}
-                  
-                  {accesses.length > 8 && (
-                    <text
-                      x={x + 90}
-                      y={350}
-                      textAnchor="middle"
-                      fontSize="10"
-                      fill="hsl(var(--muted-foreground))"
-                    >
-                      +{accesses.length - 8} more
-                    </text>
-                  )}
+                )}
+              </g>
+            );
+          })}
+
+          {/* Edges from selected datasets to time buckets */}
+          {Array.from(selectedDatasets).map((datasetName) => {
+            const datasetIndex = uniqueDatasets.findIndex(d => d.name === datasetName);
+            if (datasetIndex === -1) return null;
+            
+            const startY = 100 + (datasetIndex * 80);
+            
+            return timeBuckets.map((bucket, bucketIndex) => {
+              const hasAccesses = bucket.accesses.some(a => a.datasetName === datasetName);
+              if (!hasAccesses) return null;
+              
+              const endX = 350 + (bucketIndex * 200);
+              const endY = 150;
+              
+              // Calculate path
+              const startX = 200;
+              const midX = (startX + endX) / 2;
+              const path = `M ${startX} ${startY} Q ${midX} ${startY - 20} ${endX} ${endY}`;
+              
+              return (
+                <g key={`edge-${datasetName}-${bucketIndex}`}>
+                  <path
+                    d={path}
+                    fill="none"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    opacity={0.6}
+                    markerEnd="url(#arrowhead)"
+                  />
                 </g>
               );
-            })}
+            });
+          })}
+
+          {/* Arrow marker definition */}
+          <defs>
+            <marker
+              id="arrowhead"
+              markerWidth={10}
+              markerHeight={7}
+              refX={9}
+              refY={3.5}
+              orient="auto"
+            >
+              <polygon
+                points="0 0, 10 3.5, 0 7"
+                fill="hsl(var(--primary))"
+              />
+            </marker>
+          </defs>
+          
+          {/* Legend */}
+          <g transform="translate(50, 550)">
+            <circle cx={5} cy={5} r={4} fill="hsl(var(--primary))" />
+            <text x={15} y={9} fontSize="10" fill="hsl(var(--foreground))">Read</text>
             
-            {/* Legend */}
-            <g transform="translate(20, 360)">
-              <circle cx={5} cy={5} r={4} fill="hsl(var(--primary))" />
-              <text x={15} y={9} fontSize="10" fill="hsl(var(--foreground))">Read</text>
-              
-              <circle cx={60} cy={5} r={4} fill="hsl(var(--destructive))" />
-              <text x={70} y={9} fontSize="10" fill="hsl(var(--foreground))">Modify</text>
-            </g>
-          </svg>
-        </div>
-        
-        {selectedDatasets.size === 0 && (
-          <div className="text-center text-muted-foreground text-sm py-8">
-            Select datasets from the tree to see their access patterns across time buckets
-          </div>
-        )}
+            <circle cx={60} cy={5} r={4} fill="hsl(var(--destructive))" />
+            <text x={70} y={9} fontSize="10" fill="hsl(var(--foreground))">Modify</text>
+          </g>
+        </svg>
       </div>
+      
+      {selectedDatasets.size === 0 && (
+        <div className="text-center text-muted-foreground text-sm py-8">
+          Click on dataset nodes to see their access patterns across time buckets
+        </div>
+      )}
+      
+      {selectedDatasets.size > 0 && (
+        <div className="mt-4 pt-4 border-t border-border">
+          <div className="text-xs text-muted-foreground mb-2">
+            Selected Datasets ({selectedDatasets.size})
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {Array.from(selectedDatasets).map(dataset => (
+              <Badge key={dataset} variant="outline" className="text-xs">
+                {dataset}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
