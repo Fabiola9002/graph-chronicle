@@ -465,22 +465,24 @@ const TimelineCollapsibleTree: React.FC<TimelineCollapsibleTreeProps> = ({
       return path;
     };
 
+    // Track checked orgs locally within D3 context
+    let localCheckedOrgs = new Set(checkedOrgs);
+
     // Toggle children on click
     function click(event: any, d: any) {
       const isOrgNode = d.depth === 2 && hierarchy === 'dataset-orgs-users';
       
       if (isOrgNode) {
         // Handle checkbox toggle for organization nodes
-        const newCheckedOrgs = new Set(checkedOrgs);
-        if (checkedOrgs.has(d.data.id)) {
-          newCheckedOrgs.delete(d.data.id);
+        if (localCheckedOrgs.has(d.data.id)) {
+          localCheckedOrgs.delete(d.data.id);
           // Hide user children and their access data
           if (d.children) {
             d._children = d.children;
             d.children = null;
           }
         } else {
-          newCheckedOrgs.add(d.data.id);
+          localCheckedOrgs.add(d.data.id);
           // Show user children with populated reads/modifies data
           if (d._children) {
             d.children = d._children;
@@ -517,9 +519,25 @@ const TimelineCollapsibleTree: React.FC<TimelineCollapsibleTreeProps> = ({
             });
           }
         }
-        setCheckedOrgs(newCheckedOrgs);
         
-        // Only update this specific node, not the entire tree
+        // Update the checkbox visual state immediately
+        const orgNode = d3.select(event.currentTarget);
+        const checkmark = orgNode.select('path');
+        const isNowChecked = localCheckedOrgs.has(d.data.id);
+        
+        if (isNowChecked && checkmark.empty()) {
+          // Add checkmark
+          orgNode.append("path")
+            .attr("d", "M-4,-1 L-1,2 L4,-3")
+            .style("stroke", "hsl(var(--primary))")
+            .style("stroke-width", "2px")
+            .style("fill", "none");
+        } else if (!isNowChecked && !checkmark.empty()) {
+          // Remove checkmark
+          checkmark.remove();
+        }
+        
+        // Only update this specific node branch, not the entire tree
         update(d);
       } else {
         // Regular expand/collapse for non-org nodes
