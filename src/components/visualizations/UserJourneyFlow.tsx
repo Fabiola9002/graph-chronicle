@@ -324,39 +324,37 @@ export const UserJourneyFlow = ({ data }: UserJourneyFlowProps) => {
             
             return (
               <g key={dataset.name}>
-                <rect
-                  x={50}
-                  y={y - 25}
-                  width={150}
-                  height={50}
-                  rx={8}
+                <circle
+                  cx={125}
+                  cy={y}
+                  r={35}
                   fill={isSelected ? 'hsl(var(--primary))' : 'hsl(var(--muted))'}
                   stroke={isSelected ? 'hsl(var(--primary-foreground))' : 'hsl(var(--border))'}
-                  strokeWidth={2}
-                  className="cursor-pointer"
+                  strokeWidth={3}
+                  className="cursor-pointer hover:opacity-80 transition-opacity"
                   onClick={() => toggleDatasetSelection(dataset.name)}
                 />
                 <text
                   x={125}
                   y={y - 5}
                   textAnchor="middle"
-                  fontSize="12"
+                  fontSize="11"
                   fill={isSelected ? 'hsl(var(--primary-foreground))' : 'hsl(var(--foreground))'}
                   className="cursor-pointer font-medium"
                   onClick={() => toggleDatasetSelection(dataset.name)}
                 >
-                  {dataset.name}
+                  {dataset.name.length > 8 ? dataset.name.substring(0, 8) + '...' : dataset.name}
                 </text>
                 <text
                   x={125}
-                  y={y + 10}
+                  y={y + 8}
                   textAnchor="middle"
-                  fontSize="10"
+                  fontSize="9"
                   fill={isSelected ? 'hsl(var(--primary-foreground) / 0.8)' : 'hsl(var(--muted-foreground))'}
                   className="cursor-pointer"
                   onClick={() => toggleDatasetSelection(dataset.name)}
                 >
-                  {dataset.accesses.length} accesses
+                  {dataset.accesses.length}
                 </text>
               </g>
             );
