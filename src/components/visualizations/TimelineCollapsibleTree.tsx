@@ -56,6 +56,7 @@ const TimelineCollapsibleTree: React.FC<TimelineCollapsibleTreeProps> = ({
   const [currentTime, setCurrentTime] = useState(0);
   const [treeRoot, setTreeRoot] = useState<TreeNode | null>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 500 });
+  const [checkedOrgs, setCheckedOrgs] = useState<Set<string>>(new Set());
 
   // Parse data if it's a JSON payload
   const parsedData = useMemo(() => {
@@ -325,12 +326,43 @@ const TimelineCollapsibleTree: React.FC<TimelineCollapsibleTreeProps> = ({
         .attr("transform", d => `translate(${(source as any).y0 || 0},${(source as any).x0 || 0})`)
         .on("click", click);
 
-      // Add circles
-      nodeEnter.append("circle")
-        .attr("r", 1e-6)
-        .style("fill", d => (d as any)._children ? "hsl(var(--primary))" : "hsl(var(--muted))")
-        .style("stroke", "hsl(var(--border))")
-        .style("stroke-width", "2px");
+      // Add organization checkboxes or regular circles
+      nodeEnter.each(function(d: any) {
+        const selection = d3.select(this);
+        const isOrgNode = d.depth === 2 && hierarchy === 'dataset-orgs-users'; // Org level in dataset hierarchy
+        
+        if (isOrgNode) {
+          // Create checkbox for organization nodes
+          const isChecked = checkedOrgs.has(d.data.id);
+          
+          // Checkbox background
+          selection.append("rect")
+            .attr("x", -8)
+            .attr("y", -8)
+            .attr("width", 16)
+            .attr("height", 16)
+            .attr("rx", 2)
+            .style("fill", "hsl(var(--background))")
+            .style("stroke", "hsl(var(--border))")
+            .style("stroke-width", "2px");
+          
+          // Checkmark
+          if (isChecked) {
+            selection.append("path")
+              .attr("d", "M-4,-1 L-1,2 L4,-3")
+              .style("stroke", "hsl(var(--primary))")
+              .style("stroke-width", "2px")
+              .style("fill", "none");
+          }
+        } else {
+          // Regular circle for non-org nodes
+          selection.append("circle")
+            .attr("r", 1e-6)
+            .style("fill", d => (d as any)._children ? "hsl(var(--primary))" : "hsl(var(--muted))")
+            .style("stroke", "hsl(var(--border))")
+            .style("stroke-width", "2px");
+        }
+      });
 
       // Add labels
       nodeEnter.append("text")
@@ -435,14 +467,39 @@ const TimelineCollapsibleTree: React.FC<TimelineCollapsibleTreeProps> = ({
 
     // Toggle children on click
     function click(event: any, d: any) {
-      if (d.children) {
-        d._children = d.children;
-        d.children = null;
+      const isOrgNode = d.depth === 2 && hierarchy === 'dataset-orgs-users';
+      
+      if (isOrgNode) {
+        // Handle checkbox toggle for organization nodes
+        const newCheckedOrgs = new Set(checkedOrgs);
+        if (checkedOrgs.has(d.data.id)) {
+          newCheckedOrgs.delete(d.data.id);
+          // Hide user children
+          if (d.children) {
+            d._children = d.children;
+            d.children = null;
+          }
+        } else {
+          newCheckedOrgs.add(d.data.id);
+          // Show user children
+          if (d._children) {
+            d.children = d._children;
+            d._children = null;
+          }
+        }
+        setCheckedOrgs(newCheckedOrgs);
+        update(d);
       } else {
-        d.children = d._children;
-        d._children = null;
+        // Regular expand/collapse for non-org nodes
+        if (d.children) {
+          d._children = d.children;
+          d.children = null;
+        } else {
+          d.children = d._children;
+          d._children = null;
+        }
+        update(d);
       }
-      update(d);
     }
 
     // Initial render
