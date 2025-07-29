@@ -505,7 +505,7 @@ const TimelineCollapsibleTree: React.FC<TimelineCollapsibleTreeProps> = ({
     // Initial render
     update(root);
 
-  }, [generateTreeData, dimensions]);
+  }, [generateTreeData, dimensions, checkedOrgs]);
 
   // Handle horizontal scroll
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
