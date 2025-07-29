@@ -474,17 +474,47 @@ const TimelineCollapsibleTree: React.FC<TimelineCollapsibleTreeProps> = ({
         const newCheckedOrgs = new Set(checkedOrgs);
         if (checkedOrgs.has(d.data.id)) {
           newCheckedOrgs.delete(d.data.id);
-          // Hide user children
+          // Hide user children and their access data
           if (d.children) {
             d._children = d.children;
             d.children = null;
           }
         } else {
           newCheckedOrgs.add(d.data.id);
-          // Show user children
+          // Show user children with populated reads/modifies data
           if (d._children) {
             d.children = d._children;
             d._children = null;
+            
+            // Populate reads/modifies data for users in this org
+            d.children.forEach((userNode: any) => {
+              // Filter access data for this specific user and time period
+              const userAccessData = parsedData.filter((item: any) => {
+                const itemTime = new Date(item.timestamp || item.time || item.date);
+                const isInTimeRange = itemTime >= timeRange.start && itemTime <= timeRange.end;
+                const belongsToUser = item.userId === userNode.data.id || 
+                                    item.user === userNode.data.id ||
+                                    item.user_id === userNode.data.id;
+                return isInTimeRange && belongsToUser;
+              });
+              
+              // Add reads/modifies as children to user nodes
+              const accessNodes = userAccessData.map((access: any) => ({
+                id: `${userNode.data.id}-${access.action || access.type}-${access.timestamp || access.time}`,
+                name: `${access.action || access.type}: ${access.resource || access.dataset || access.table}`,
+                type: access.action || access.type,
+                timestamp: access.timestamp || access.time || access.date,
+                details: access
+              }));
+              
+              if (accessNodes.length > 0) {
+                userNode.children = accessNodes.map((node: any) => ({
+                  data: node,
+                  children: null,
+                  _children: null
+                }));
+              }
+            });
           }
         }
         setCheckedOrgs(newCheckedOrgs);
