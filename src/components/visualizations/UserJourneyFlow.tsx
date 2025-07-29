@@ -417,39 +417,33 @@ export const UserJourneyFlow = ({ data }: UserJourneyFlowProps) => {
                   
                   return (
                     <g key={`${access.id}-${accessIndex}`}>
-                      <rect
-                        x={x + 10}
-                        y={y}
-                        width={160}
-                        height={30}
-                        rx={4}
-                        fill={isRead ? 'hsl(var(--primary) / 0.1)' : 'hsl(var(--destructive) / 0.1)'}
-                        stroke={isRead ? 'hsl(var(--primary))' : 'hsl(var(--destructive))'}
-                        strokeWidth={1}
+                      <circle
+                        cx={x + 90}
+                        cy={y + 15}
+                        r={18}
+                        fill={isRead ? 'hsl(var(--chart-2))' : 'hsl(var(--chart-1))'}
+                        stroke="hsl(var(--border))"
+                        strokeWidth={2}
                       />
                       <text
-                        x={x + 15}
+                        x={x + 90}
                         y={y + 12}
-                        fontSize="10"
-                        fill="hsl(var(--foreground))"
+                        textAnchor="middle"
+                        fontSize="9"
+                        fill="white"
                         fontWeight="medium"
                       >
-                        {access.userName}
+                        {access.userName.substring(0, 4)}
                       </text>
                       <text
-                        x={x + 15}
-                        y={y + 24}
-                        fontSize="9"
-                        fill="hsl(var(--muted-foreground))"
+                        x={x + 90}
+                        y={y + 22}
+                        textAnchor="middle"
+                        fontSize="8"
+                        fill="white"
                       >
-                        {access.accessType}
+                        {isRead ? 'READ' : 'MOD'}
                       </text>
-                      <circle
-                        cx={x + 155}
-                        cy={y + 15}
-                        r={5}
-                        fill={isRead ? 'hsl(var(--primary))' : 'hsl(var(--destructive))'}
-                      />
                     </g>
                   );
                 })}
@@ -469,44 +463,51 @@ export const UserJourneyFlow = ({ data }: UserJourneyFlowProps) => {
             );
           })}
 
-          {/* Edges from selected datasets to time buckets */}
+          {/* Edges from selected datasets to individual access circles */}
           {Array.from(selectedDatasets).map((datasetName) => {
             const datasetIndex = uniqueDatasets.findIndex(d => d.name === datasetName);
             if (datasetIndex === -1) return null;
             
             const startY = 100 + (datasetIndex * 80);
+            const startX = 160; // Right edge of dataset circle
             
             return timeBuckets.map((bucket, bucketIndex) => {
-              const hasAccesses = bucket.accesses.some(a => a.datasetName === datasetName);
-              if (!hasAccesses) return null;
+              const datasetAccesses = bucket.accesses.filter(a => a.datasetName === datasetName);
+              if (datasetAccesses.length === 0) return null;
               
-              const endX = 350 + (bucketIndex * 200);
-              const endY = 150;
+              const bucketX = 350 + (bucketIndex * 200);
               
-              // Calculate path
-              const startX = 200;
-              const midX = (startX + endX) / 2;
-              const path = `M ${startX} ${startY} Q ${midX} ${startY - 20} ${endX} ${endY}`;
-              
-              return (
-                <g key={`edge-${datasetName}-${bucketIndex}`}>
-                  <path
-                    d={path}
-                    fill="none"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                    opacity={0.6}
-                    markerEnd="url(#arrowhead)"
-                  />
-                </g>
-              );
+              return datasetAccesses.slice(0, 10).map((access, accessIndex) => {
+                const accessY = 100 + (accessIndex * 40) + 15;
+                const accessX = bucketX + 90;
+                const isRead = access.accessType.toLowerCase().includes('read');
+                
+                // Calculate curved path
+                const midX = (startX + accessX) / 2;
+                const controlY = Math.min(startY, accessY) - 30;
+                const path = `M ${startX} ${startY} Q ${midX} ${controlY} ${accessX - 18} ${accessY}`;
+                
+                return (
+                  <g key={`edge-${datasetName}-${bucketIndex}-${accessIndex}`}>
+                    <path
+                      d={path}
+                      fill="none"
+                      stroke={isRead ? 'hsl(var(--chart-2))' : 'hsl(var(--chart-1))'}
+                      strokeWidth={2}
+                      opacity={0.7}
+                      markerEnd={isRead ? "url(#readArrow)" : "url(#modifyArrow)"}
+                      strokeDasharray={isRead ? "none" : "5,5"}
+                    />
+                  </g>
+                );
+              });
             });
           })}
 
-          {/* Arrow marker definition */}
+          {/* Arrow marker definitions */}
           <defs>
             <marker
-              id="arrowhead"
+              id="readArrow"
               markerWidth={10}
               markerHeight={7}
               refX={9}
@@ -515,7 +516,20 @@ export const UserJourneyFlow = ({ data }: UserJourneyFlowProps) => {
             >
               <polygon
                 points="0 0, 10 3.5, 0 7"
-                fill="hsl(var(--primary))"
+                fill="hsl(var(--chart-2))"
+              />
+            </marker>
+            <marker
+              id="modifyArrow"
+              markerWidth={10}
+              markerHeight={7}
+              refX={9}
+              refY={3.5}
+              orient="auto"
+            >
+              <polygon
+                points="0 0, 10 3.5, 0 7"
+                fill="hsl(var(--chart-1))"
               />
             </marker>
           </defs>
