@@ -299,32 +299,34 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
             <defs>
               <marker
                 id="readArrow"
-                markerWidth={8}
-                markerHeight={6}
-                refX={7}
-                refY={3}
+                markerWidth={12}
+                markerHeight={8}
+                refX={11}
+                refY={4}
                 orient="auto"
                 markerUnits="strokeWidth"
               >
                 <polygon
-                  points="0 0, 8 3, 0 6"
+                  points="0 0, 12 4, 0 8"
                   fill="hsl(var(--chart-2))"
                   stroke="hsl(var(--chart-2))"
+                  strokeWidth={1}
                 />
               </marker>
               <marker
                 id="modifyArrow"
-                markerWidth={8}
-                markerHeight={6}
-                refX={7}
-                refY={3}
+                markerWidth={12}
+                markerHeight={8}
+                refX={11}
+                refY={4}
                 orient="auto"
                 markerUnits="strokeWidth"
               >
                 <polygon
-                  points="0 0, 8 3, 0 6"
+                  points="0 0, 12 4, 0 8"
                   fill="hsl(var(--chart-1))"
                   stroke="hsl(var(--chart-1))"
+                  strokeWidth={1}
                 />
               </marker>
             </defs>
