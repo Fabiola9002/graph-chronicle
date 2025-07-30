@@ -423,19 +423,19 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                   const isRead = access.accessType.toLowerCase().includes('read');
                   
                   // Calculate positions - start from the actual black circle connection point
-                  const connectionPointX = 414; // Exact position of circle center (table width 320px + gap 24px + circle center 48px + padding 22px)
-                  const connectionPointY = 110 + (entityDisplayIndex * 56); // Exact vertical position (pt-16 + gap-8 spacing)
+                  const connectionPointX = 380; // Position where the black circles actually are
+                  const connectionPointY = 110 + (entityDisplayIndex * 56); // Exact vertical position
                   
                   // Target position in the time bucket
-                  const bucketStartX = 500; // Start of time buckets area
-                  const bucketWidth = 250; // Actual width of each time bucket
-                  const targetX = bucketStartX + (bucketIndex * (bucketWidth + 16)) + (bucketWidth / 2); // Center of bucket with gap
-                  const targetY = 180 + (accessIndex * 60); // Position of each access item
+                  const bucketStartX = 450; // Start of time buckets area
+                  const bucketWidth = 200; // Width of each time bucket
+                  const targetX = bucketStartX + (bucketIndex * (bucketWidth + 16)) + (bucketWidth / 2);
+                  const targetY = 180 + (accessIndex * 60);
                   
-                  // Create curved path from connection circle edge to access item
-                  const controlX1 = connectionPointX + 80;
+                  // Create path from black circle edge to access item
+                  const controlX1 = connectionPointX + 60;
                   const controlY1 = connectionPointY - 30;
-                  const controlX2 = targetX - 80;
+                  const controlX2 = targetX - 60;
                   const controlY2 = targetY - 30;
                   
                   const path = `M ${connectionPointX + 24} ${connectionPointY} C ${controlX1} ${controlY1} ${controlX2} ${controlY2} ${targetX - 15} ${targetY}`;
