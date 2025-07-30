@@ -318,7 +318,7 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
         {/* Visualization Area */}
         <div className="flex-1 relative">
           {/* Time bucket columns */}
-          <div className="flex gap-4 h-[500px]">
+          <div className="flex gap-4" style={{ height: `${Math.max(500, 110 + (selectedEntities.size * 56) + 100)}px`, paddingTop: '110px' }}>
             {timeBuckets.map((bucket, index) => {
               const accesses = bucket.accesses;
               
