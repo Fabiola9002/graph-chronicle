@@ -223,26 +223,6 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
           </Button>
         </div>
       </div>
-
-      {/* Timeline Control */}
-      <div className="mb-4 p-4 bg-card border border-border rounded-lg">
-        <div className="flex items-center gap-4">
-          <div className="text-sm font-medium min-w-fit">Timeline:</div>
-          <div className="flex-1">
-            <Slider
-              value={[currentHour]}
-              onValueChange={(value) => setCurrentHour(value[0])}
-              max={23}
-              min={0}
-              step={1}
-              className="w-full"
-            />
-          </div>
-          <div className="text-sm text-muted-foreground min-w-fit">
-            {currentHour.toString().padStart(2, '0')}:00
-          </div>
-        </div>
-      </div>
       
       <div className="flex gap-6">
         {/* Dataset Selection */}
