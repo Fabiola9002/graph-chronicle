@@ -231,7 +231,7 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
           <div className="mb-3">
             <h4 className="text-sm font-medium">Selected Datasets ({selectedEntities.size})</h4>
           </div>
-          <div className="border border-border rounded-lg bg-card">
+          <div className="border border-border rounded-lg bg-card h-[520px] flex flex-col">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -241,7 +241,7 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                 </TableRow>
               </TableHeader>
             </Table>
-            <div className="max-h-[400px] overflow-y-auto">
+            <div className="flex-1 overflow-y-auto">
               <Table>
                 <TableBody>
                   {uniqueEntities.map((entity) => {
