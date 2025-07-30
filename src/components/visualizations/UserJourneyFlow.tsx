@@ -196,24 +196,8 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
         </div>
       </div>
 
-      {/* Legend and Controls Row */}
-      <div className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-pink-500"></div>
-              <span className="text-sm">Read</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-              <span className="text-sm">Modify</span>
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Solid = Read • Dashed = Modify
-            </div>
-          </div>
-        </div>
-        
+      {/* Controls Row */}
+      <div className="mb-6 flex items-center justify-end">
         <div className="flex gap-4 items-end">
           <div>
             <label className="text-xs text-muted-foreground mb-2 block">Time Unit</label>
