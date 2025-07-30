@@ -172,10 +172,38 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
 
   return (
     <div className="w-full h-full p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">
-          {perspective === 'user-journey' ? 'User Journey Flow' : 'Dataset Journey Flow'}
-        </h3>
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <h3 className="text-lg font-semibold mb-3">
+            {perspective === 'user-journey' ? 'User Journey Flow' : 'Dataset Journey Flow'}
+          </h3>
+          <div className="flex gap-4 items-end">
+            <div>
+              <label className="text-xs text-muted-foreground mb-2 block">Time Unit</label>
+              <Select defaultValue="hours">
+                <SelectTrigger className="w-24 h-8 text-xs">
+                  <SelectValue placeholder="Unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="seconds">Seconds</SelectItem>
+                  <SelectItem value="minutes">Minutes</SelectItem>
+                  <SelectItem value="hours">Hours</SelectItem>
+                  <SelectItem value="days">Days</SelectItem>
+                  <SelectItem value="years">Years</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-2 block">Count</label>
+              <input 
+                type="number" 
+                min="1"
+                className="w-20 h-8 px-2 text-xs border border-border rounded bg-background"
+                placeholder="1"
+              />
+            </div>
+          </div>
+        </div>
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -196,35 +224,6 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
         </div>
       </div>
 
-      {/* Controls Row */}
-      <div className="mb-6 flex items-center justify-end">
-        <div className="flex gap-4 items-end">
-          <div>
-            <label className="text-xs text-muted-foreground mb-2 block">Time Unit</label>
-            <Select defaultValue="hours">
-              <SelectTrigger className="w-24 h-8 text-xs">
-                <SelectValue placeholder="Unit" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="seconds">Seconds</SelectItem>
-                <SelectItem value="minutes">Minutes</SelectItem>
-                <SelectItem value="hours">Hours</SelectItem>
-                <SelectItem value="days">Days</SelectItem>
-                <SelectItem value="years">Years</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-2 block">Count</label>
-            <input 
-              type="number" 
-              min="1"
-              className="w-20 h-8 px-2 text-xs border border-border rounded bg-background"
-              placeholder="1"
-            />
-          </div>
-        </div>
-      </div>
       
       <div className="flex gap-6">
         {/* Dataset Selection */}
