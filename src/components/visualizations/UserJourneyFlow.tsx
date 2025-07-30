@@ -444,9 +444,12 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
               const entityIndex = visibleEntities.findIndex(e => e.name === entityName);
               if (entityIndex === -1) return null;
               
-              // Calculate start position - from the right edge of the table
-              const startY = 100 + (entityIndex * 45) + 20; // Approximate table row center
-              const startX = 50; // Right edge of table area
+              // Calculate start position - from the checkbox position in the table
+              const tableRowHeight = 45; // Approximate height of each table row
+              const tableStartY = 120; // Where the table content starts
+              const checkboxX = 25; // X position of checkbox in table (left column)
+              const startY = tableStartY + (entityIndex * tableRowHeight);
+              const startX = checkboxX;
               
               return timeBuckets.map((bucket, bucketIndex) => {
                 const entityAccesses = bucket.accesses.filter(a => 
