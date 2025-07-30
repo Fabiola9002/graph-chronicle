@@ -13,7 +13,7 @@ import { SankeyDiagram } from "./visualizations/SankeyDiagram";
 import TimelineCollapsibleTree from "./visualizations/TimelineCollapsibleTree";
 import { UserJourneyFlow } from "./visualizations/UserJourneyFlow";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { MetricCards } from "./MetricCards";
+
 import { SearchPanel } from "./SearchPanel";
 import { JourneyInsights } from "./JourneyInsights";
 import { PlayCircle, Pause, SkipForward, SkipBack, Settings, Database, Users, Activity } from "lucide-react";
@@ -226,8 +226,6 @@ const [filters, setFilters] = useState({
           </div>
         </div>
 
-        {/* Metrics Overview */}
-        <MetricCards data={filteredData} />
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-12 gap-6">
@@ -242,66 +240,22 @@ const [filters, setFilters] = useState({
                     Data Access Visualization
                   </CardTitle>
                   
-                  <Carousel className="w-full max-w-md">
-                    <CarouselContent>
-                      <CarouselItem>
-                        <Button 
-                          variant={selectedVisualization === "heatmap" ? "default" : "outline"}
-                          onClick={() => setSelectedVisualization("heatmap")}
-                          size="sm"
-                        >
-                          Heatmap
-                        </Button>
-                      </CarouselItem>
-                      <CarouselItem>
-                        <Button 
-                          variant={selectedVisualization === "flow" ? "default" : "outline"}
-                          onClick={() => setSelectedVisualization("flow")}
-                          size="sm"
-                        >
-                          Flow
-                        </Button>
-                      </CarouselItem>
-                      <CarouselItem>
-                        <Button 
-                          variant={selectedVisualization === "timeline" ? "default" : "outline"}
-                          onClick={() => setSelectedVisualization("timeline")}
-                          size="sm"
-                        >
-                          Timeline
-                        </Button>
-                      </CarouselItem>
-                      <CarouselItem>
-                        <Button 
-                          variant={selectedVisualization === "sankey" ? "default" : "outline"}
-                          onClick={() => setSelectedVisualization("sankey")}
-                          size="sm"
-                        >
-                          Sankey
-                        </Button>
-                      </CarouselItem>
-                       <CarouselItem>
-                         <Button 
-                           variant={selectedVisualization === "tree" ? "default" : "outline"}
-                           onClick={() => setSelectedVisualization("tree")}
-                           size="sm"
-                         >
-                           Tree
-                         </Button>
-                       </CarouselItem>
-                       <CarouselItem>
-                         <Button 
-                           variant={selectedVisualization === "journey" ? "default" : "outline"}
-                           onClick={() => setSelectedVisualization("journey")}
-                           size="sm"
-                         >
-                           Journey
-                         </Button>
-                       </CarouselItem>
-                    </CarouselContent>
-                    <CarouselPrevious />
-                    <CarouselNext />
-                  </Carousel>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant={selectedVisualization === "flow" ? "default" : "outline"}
+                      onClick={() => setSelectedVisualization("flow")}
+                      size="sm"
+                    >
+                      Flow
+                    </Button>
+                    <Button 
+                      variant={selectedVisualization === "journey" ? "default" : "outline"}
+                      onClick={() => setSelectedVisualization("journey")}
+                      size="sm"
+                    >
+                      Journey
+                    </Button>
+                  </div>
                 </div>
                 
                 {selectedVisualization === "tree" && (
@@ -352,30 +306,8 @@ const [filters, setFilters] = useState({
               </CardHeader>
               
               <CardContent className="h-[600px]">
-                {selectedVisualization === "heatmap" && (
-                  <AccessHeatmap data={filteredData} />
-                )}
                 {selectedVisualization === "flow" && (
                   <UserDatasetFlow data={filteredData} />
-                )}
-                {selectedVisualization === "timeline" && (
-                  <TimelineChart data={filteredData} />
-                )}
-                {selectedVisualization === "sankey" && (
-                  <SankeyDiagram data={filteredData} />
-                )}
-                {selectedVisualization === "tree" && (
-                  <TimelineCollapsibleTree 
-                    data={filteredData.map(d => ({
-                      user: d.userName,
-                      dataset: d.datasetName,
-                      accessType: d.accessType === 'execute' ? 'read' : d.accessType,
-                      timestamp: d.timestamp,
-                      department: d.department,
-                      duration: d.duration
-                    }))}
-                    hierarchy={treeHierarchy}
-                  />
                 )}
                 {selectedVisualization === "journey" && (
                   <UserJourneyFlow data={filteredData} perspective={journeyPerspective} />
