@@ -195,17 +195,24 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
         </div>
       </div>
 
-      <div className="mb-4">
-        <div className="text-xs text-muted-foreground mb-2">Time Control</div>
-        <Slider
-          value={[currentHour]}
-          onValueChange={([value]) => setCurrentHour(value)}
-          max={23}
-          step={1}
-          className="w-full max-w-md"
-        />
-        <div className="text-xs text-muted-foreground mt-1">
-          Current Hour: {currentHour.toString().padStart(2, '0')}:00
+      <div className="mb-4 flex gap-4 items-end">
+        <div>
+          <label className="text-xs text-muted-foreground mb-2 block">Sec-years</label>
+          <input 
+            type="number" 
+            className="w-20 h-8 px-2 text-xs border border-border rounded bg-background"
+            placeholder="0"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-2 block">Count (1-10)</label>
+          <input 
+            type="number" 
+            min="1" 
+            max="10" 
+            className="w-20 h-8 px-2 text-xs border border-border rounded bg-background"
+            placeholder="1"
+          />
         </div>
       </div>
       
@@ -285,11 +292,10 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                 orient="auto"
                 markerUnits="strokeWidth"
               >
-                <polygon
-                  points="0 0, 8 3, 0 6"
-                  fill="hsl(330 81% 60%)"
-                  stroke="hsl(330 81% 60%)"
-                />
+                 <polygon
+                   points="0 0, 8 3, 0 6"
+                   fill="hsl(330 81% 60%)"
+                 />
               </marker>
               <marker
                 id="modifyArrow"
@@ -300,11 +306,10 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                 orient="auto"
                 markerUnits="strokeWidth"
               >
-                <polygon
-                  points="0 0, 8 3, 0 6"
-                  fill="hsl(217 91% 60%)"
-                  stroke="hsl(217 91% 60%)"
-                />
+                 <polygon
+                   points="0 0, 8 3, 0 6"
+                   fill="hsl(217 91% 60%)"
+                 />
               </marker>
             </defs>
 
