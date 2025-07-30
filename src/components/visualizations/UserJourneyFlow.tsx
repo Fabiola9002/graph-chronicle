@@ -195,30 +195,52 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
         </div>
       </div>
 
-      <div className="mb-4 flex gap-4 items-end">
-        <div>
-          <label className="text-xs text-muted-foreground mb-2 block">Sec-years</label>
-          <input 
-            type="number" 
-            className="w-20 h-8 px-2 text-xs border border-border rounded bg-background"
-            placeholder="0"
-          />
+      {/* Legend and Controls Row */}
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-pink-500"></div>
+              <span className="text-sm">Read</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+              <span className="text-sm">Modify</span>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Solid = Read • Dashed = Modify
+            </div>
+          </div>
         </div>
-        <div>
-          <label className="text-xs text-muted-foreground mb-2 block">Count (1-10)</label>
-          <input 
-            type="number" 
-            min="1" 
-            max="10" 
-            className="w-20 h-8 px-2 text-xs border border-border rounded bg-background"
-            placeholder="1"
-          />
+        
+        <div className="flex gap-4 items-end">
+          <div>
+            <label className="text-xs text-muted-foreground mb-2 block">Sec-years</label>
+            <input 
+              type="number" 
+              className="w-20 h-8 px-2 text-xs border border-border rounded bg-background"
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-2 block">Count (1-10)</label>
+            <input 
+              type="number" 
+              min="1" 
+              max="10" 
+              className="w-20 h-8 px-2 text-xs border border-border rounded bg-background"
+              placeholder="1"
+            />
+          </div>
         </div>
       </div>
       
       <div className="flex gap-6">
-        {/* Entity Selection Table */}
+        {/* Dataset Selection */}
         <div className="w-80 flex-shrink-0">
+          <div className="mb-3">
+            <h4 className="text-sm font-medium">Selected Datasets ({selectedEntities.size})</h4>
+          </div>
           <div className="border border-border rounded-lg bg-card">
             <Table>
               <TableHeader>
