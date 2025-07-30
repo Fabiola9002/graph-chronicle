@@ -74,6 +74,14 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
     }
   }, [data, perspective]);
 
+  // Auto-select first few entities for initial visibility
+  useEffect(() => {
+    if (uniqueEntities.length > 0 && selectedEntities.size === 0) {
+      const entitiesToSelect = uniqueEntities.slice(0, Math.min(3, uniqueEntities.length));
+      setSelectedEntities(new Set(entitiesToSelect.map(e => e.name)));
+    }
+  }, [uniqueEntities, selectedEntities.size]);
+
   // Generate time buckets based on current hour
   const timeBuckets = useMemo(() => {
     const buckets: TimeBucket[] = [];
