@@ -311,7 +311,7 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
         </div>
 
         {/* Visualization Area */}
-        <div className="flex-1">
+        <div className="flex-1 relative">
           {/* Time bucket columns */}
           <div className="flex gap-4 h-[500px]">
             {timeBuckets.map((bucket, index) => {
@@ -382,6 +382,82 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
             })}
           </div>
           
+          {/* SVG Overlay for black connecting arrows */}
+          <svg
+            ref={svgRef}
+            width="100%"
+            height="100%"
+            className="absolute top-0 left-0 pointer-events-none"
+            style={{ zIndex: 10 }}
+          >
+            <defs>
+              <marker
+                id="blackArrow"
+                markerWidth={10}
+                markerHeight={10}
+                refX={9}
+                refY={3}
+                orient="auto"
+                markerUnits="strokeWidth"
+              >
+                <polygon
+                  points="0 0, 10 3, 0 6"
+                  fill="black"
+                />
+              </marker>
+            </defs>
+
+            {/* Draw black connecting arrows */}
+            {Array.from(selectedEntities).map((entityName, entityDisplayIndex) => {
+              const entity = uniqueEntities.find(e => e.name === entityName);
+              if (!entity) return null;
+
+              return timeBuckets.map((bucket, bucketIndex) => {
+                const entityAccesses = bucket.accesses.filter(a => 
+                  perspective === 'user-journey' 
+                    ? a.userName === entityName
+                    : a.datasetName === entityName
+                );
+                if (entityAccesses.length === 0) return null;
+
+                return entityAccesses.slice(0, 12).map((access, accessIndex) => {
+                  const isRead = access.accessType.toLowerCase().includes('read');
+                  
+                  // Calculate positions
+                  const connectionPointX = -80; // Connection point position (from connection symbols)
+                  const connectionPointY = 80 + (entityDisplayIndex * 80); // Vertical spacing between connection points
+                  
+                  const bucketWidth = 100 / timeBuckets.length; // Percentage width per bucket
+                  const targetX = (bucketIndex * bucketWidth) + (bucketWidth / 2); // Center of bucket (percentage)
+                  const targetXPx = (targetX / 100) * 800; // Convert to pixels
+                  const targetY = 120 + (accessIndex * 50); // Access item position
+                  
+                  // Create curved path
+                  const controlX1 = connectionPointX + 150;
+                  const controlY1 = connectionPointY - 30;
+                  const controlX2 = targetXPx - 100;
+                  const controlY2 = targetY - 30;
+                  
+                  const path = `M ${connectionPointX} ${connectionPointY} C ${controlX1} ${controlY1} ${controlX2} ${controlY2} ${targetXPx - 15} ${targetY}`;
+                  
+                  return (
+                    <g key={`connection-${entityName}-${bucketIndex}-${accessIndex}`}>
+                      <path
+                        d={path}
+                        fill="none"
+                        stroke="black"
+                        strokeWidth={2}
+                        opacity={0.8}
+                        markerEnd="url(#blackArrow)"
+                        strokeDasharray={isRead ? "none" : "5,3"}
+                      />
+                    </g>
+                  );
+                });
+              });
+            })}
+          </svg>
+          
           {/* Legend */}
           <div className="flex gap-4 text-sm bg-background/90 p-3 rounded-lg border mt-4">
             <div className="flex items-center gap-2">
@@ -393,11 +469,11 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
               <span>Modify Operations</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-6 h-px bg-chart-2"></div>
+              <div className="w-6 h-px bg-black"></div>
               <span>Solid = Read</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-6 h-px bg-chart-1 opacity-60" style={{ backgroundImage: 'repeating-linear-gradient(to right, currentColor 0, currentColor 4px, transparent 4px, transparent 8px)' }}></div>
+              <div className="w-6 h-px bg-black opacity-60" style={{ backgroundImage: 'repeating-linear-gradient(to right, currentColor 0, currentColor 3px, transparent 3px, transparent 6px)' }}></div>
               <span>Dashed = Modify</span>
             </div>
           </div>
