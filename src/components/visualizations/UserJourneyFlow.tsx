@@ -442,9 +442,9 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
               const entityIndex = visibleEntities.findIndex(e => e.name === entityName);
               if (entityIndex === -1) return null;
               
-              // Calculate start position based on table row
-              const startY = 100 + (entityIndex * 40); // Approximate table row height
-              const startX = 0; // Left edge of SVG
+              // Calculate start position - from the right edge of the table
+              const startY = 100 + (entityIndex * 45) + 20; // Approximate table row center
+              const startX = 50; // Right edge of table area
               
               return timeBuckets.map((bucket, bucketIndex) => {
                 const entityAccesses = bucket.accesses.filter(a => 
@@ -461,9 +461,9 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                   const accessX = bucketX + 100;
                   const isRead = access.accessType.toLowerCase().includes('read');
                   
-                  // Calculate curved path
-                  const midX = (startX + accessX) / 2;
-                  const controlY = Math.min(startY, accessY) - 50;
+                  // Calculate curved path with better control points
+                  const midX = startX + 100;
+                  const controlY = startY - 30;
                   const path = `M ${startX} ${startY} Q ${midX} ${controlY} ${accessX - 16} ${accessY}`;
                   
                   return (
@@ -472,10 +472,10 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                         d={path}
                         fill="none"
                         stroke={isRead ? 'hsl(var(--chart-2))' : 'hsl(var(--chart-1))'}
-                        strokeWidth={3}
-                        opacity={0.8}
+                        strokeWidth={4}
+                        opacity={0.9}
                         markerEnd={isRead ? "url(#readArrow)" : "url(#modifyArrow)"}
-                        strokeDasharray={isRead ? "none" : "5,5"}
+                        strokeDasharray={isRead ? "none" : "8,4"}
                       />
                     </g>
                   );
