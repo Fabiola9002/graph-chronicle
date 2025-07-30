@@ -423,7 +423,7 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                   const isRead = access.accessType.toLowerCase().includes('read');
                   
                   // Calculate positions - start from the actual black circle connection point
-                  const connectionPointX = 380; // Position where the black circles actually are
+                  const connectionPointX = 340; // Move way left closer to the table
                   const connectionPointY = 110 + (entityDisplayIndex * 56); // Exact vertical position
                   
                   // Target position in the time bucket
@@ -433,9 +433,9 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                   const targetY = 180 + (accessIndex * 60);
                   
                   // Create path from black circle edge to access item
-                  const controlX1 = connectionPointX + 60;
+                  const controlX1 = connectionPointX + 80;
                   const controlY1 = connectionPointY - 30;
-                  const controlX2 = targetX - 60;
+                  const controlX2 = targetX - 80;
                   const controlY2 = targetY - 30;
                   
                   const path = `M ${connectionPointX + 24} ${connectionPointY} C ${controlX1} ${controlY1} ${controlX2} ${controlY2} ${targetX - 15} ${targetY}`;
