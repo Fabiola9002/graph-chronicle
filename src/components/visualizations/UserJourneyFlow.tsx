@@ -221,74 +221,48 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                   <TableHead>Dataset FQN</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
-                {visibleEntities.map((entity) => {
-                  const isSelected = selectedEntities.has(entity.name);
-                  const readCount = entity.accesses.filter(a => 
-                    a.accessType.toLowerCase().includes('read')
-                  ).length;
-                  const modifyCount = entity.accesses.filter(a => 
-                    !a.accessType.toLowerCase().includes('read')
-                  ).length;
-                  
-                  return (
-                    <TableRow key={entity.name}>
-                      <TableCell>
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={() => toggleEntitySelection(entity.name)}
-                        />
-                      </TableCell>
-                       <TableCell className="text-xs">
-                         Dataset
-                       </TableCell>
-                      <TableCell className="text-xs font-mono">
-                        <div className="max-w-32 truncate" title={entity.name}>
-                          {entity.name}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {perspective === 'user-journey' && 'id' in entity ? String(entity.id) : ''}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {readCount}R / {modifyCount}M
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
             </Table>
+            <div className="max-h-[400px] overflow-y-auto">
+              <Table>
+                <TableBody>
+                  {uniqueEntities.map((entity) => {
+                    const isSelected = selectedEntities.has(entity.name);
+                    const readCount = entity.accesses.filter(a => 
+                      a.accessType.toLowerCase().includes('read')
+                    ).length;
+                    const modifyCount = entity.accesses.filter(a => 
+                      !a.accessType.toLowerCase().includes('read')
+                    ).length;
+                    
+                    return (
+                      <TableRow key={entity.name}>
+                        <TableCell>
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleEntitySelection(entity.name)}
+                          />
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          Dataset
+                        </TableCell>
+                        <TableCell className="text-xs font-mono">
+                          <div className="max-w-32 truncate" title={entity.name}>
+                            {entity.name}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {perspective === 'user-journey' && 'id' in entity ? String(entity.id) : ''}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {readCount}R / {modifyCount}M
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </div>
-          
-          {/* Scroll controls for table */}
-          {uniqueEntities.length > maxNodesVisible && (
-            <div className="flex justify-center gap-2 mt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleScrollUp}
-                disabled={!canScrollUp}
-                className="w-8 h-8 p-0"
-              >
-                <ChevronUp className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleScrollDown}
-                disabled={!canScrollDown}
-                className="w-8 h-8 p-0"
-              >
-                <ChevronDown className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
-          
-          {uniqueEntities.length > maxNodesVisible && (
-            <div className="text-xs text-muted-foreground mt-2 text-center">
-              Showing {scrollOffset + 1}-{Math.min(scrollOffset + maxNodesVisible, uniqueEntities.length)} of {uniqueEntities.length}
-            </div>
-          )}
         </div>
 
         {/* Visualization */}
