@@ -272,6 +272,7 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
             width="800"
             height="600"
             className="border border-border rounded-lg bg-card"
+            viewBox="0 0 800 600"
           >
             {/* Arrow marker definitions - must be first */}
             <defs>
@@ -319,7 +320,7 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                     x={x}
                     y={50}
                     width={200}
-                    height={500}
+                    height={520}
                     rx={8}
                     fill="hsl(var(--card))"
                     stroke="hsl(var(--border))"
@@ -402,61 +403,72 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                       }
                     });
                     
-                    return accessNodes.slice(0, 12).map((node, nodeIndex) => {
-                      const y = 100 + (nodeIndex * 35);
-                      const isRead = node.type === 'read';
-                      const displayName = node.user.substring(0, 3);
-                      
-                      return (
-                        <g key={`${node.user}-${node.type}-${nodeIndex}`}>
-                          <circle
-                            cx={x + 100}
-                            cy={y + 15}
-                            r={16}
-                            fill={isRead ? 'hsl(330 81% 60%)' : 'hsl(217 91% 60%)'}
-                            stroke="hsl(var(--border))"
-                            strokeWidth={2}
-                          />
+                    // Calculate available height and node spacing to fit within container
+                    const containerHeight = 520; // Total container height
+                    const headerHeight = 60; // Height taken by hour label and access count
+                    const availableHeight = containerHeight - headerHeight - 40; // Leave some padding
+                    const maxNodes = Math.floor(availableHeight / 30); // 30px per node including spacing
+                    const nodesToShow = Math.min(accessNodes.length, maxNodes);
+                    const nodeSpacing = nodesToShow > 0 ? Math.min(35, availableHeight / nodesToShow) : 35;
+                    
+                    return (
+                      <>
+                        {accessNodes.slice(0, nodesToShow).map((node, nodeIndex) => {
+                          const y = 110 + (nodeIndex * nodeSpacing); // Start after header area
+                          const isRead = node.type === 'read';
+                          const displayName = node.user.substring(0, 3);
+                          
+                          return (
+                            <g key={`${node.user}-${node.type}-${nodeIndex}`}>
+                              <circle
+                                cx={x + 100}
+                                cy={y + 15}
+                                r={16}
+                                fill={isRead ? 'hsl(330 81% 60%)' : 'hsl(217 91% 60%)'}
+                                stroke="hsl(var(--border))"
+                                strokeWidth={2}
+                              />
+                              <text
+                                x={x + 100}
+                                y={y + 12}
+                                textAnchor="middle"
+                                fontSize="8"
+                                fill="white"
+                                fontWeight="medium"
+                              >
+                                {displayName}
+                              </text>
+                              <text
+                                x={x + 100}
+                                y={y + 20}
+                                textAnchor="middle"
+                                fontSize="7"
+                                fill="white"
+                              >
+                                {isRead ? 'R' : 'M'}{node.count > 1 ? node.count : ''}
+                              </text>
+                            </g>
+                          );
+                        })}
+                        {accessNodes.length > nodesToShow && (
                           <text
                             x={x + 100}
-                            y={y + 12}
+                            y={550}
                             textAnchor="middle"
-                            fontSize="8"
-                            fill="white"
-                            fontWeight="medium"
+                            fontSize="10"
+                            fill="hsl(var(--muted-foreground))"
                           >
-                            {displayName}
+                            +{accessNodes.length - nodesToShow} more
                           </text>
-                          <text
-                            x={x + 100}
-                            y={y + 20}
-                            textAnchor="middle"
-                            fontSize="7"
-                            fill="white"
-                          >
-                            {isRead ? 'R' : 'M'}{node.count > 1 ? node.count : ''}
-                          </text>
-                        </g>
-                      );
-                    });
+                        )}
+                      </>
+                    );
                   })()}
-                  
-                  {accesses.length > 12 && (
-                    <text
-                      x={x + 100}
-                      y={520}
-                      textAnchor="middle"
-                      fontSize="10"
-                      fill="hsl(var(--muted-foreground))"
-                    >
-                      +{accesses.length - 12} more
-                    </text>
-                  )}
-                </g>
-              );
-            })}
+                 </g>
+               );
+             })}
 
-            {/* Edges from selected entities to individual access circles */}
+             {/* Edges from selected entities to individual access circles */}
             {Array.from(selectedEntities).map((entityName) => {
               const entityIndex = visibleEntities.findIndex(e => e.name === entityName);
               if (entityIndex === -1) return null;
@@ -513,9 +525,17 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                     }
                   });
                   
-                  return accessNodes.slice(0, 12).map((node, nodeIndex) => {
+                  // Calculate spacing to match the visual nodes
+                  const containerHeight = 520;
+                  const headerHeight = 60;
+                  const availableHeight = containerHeight - headerHeight - 40;
+                  const maxNodes = Math.floor(availableHeight / 30);
+                  const nodesToShow = Math.min(accessNodes.length, maxNodes);
+                  const nodeSpacing = nodesToShow > 0 ? Math.min(35, availableHeight / nodesToShow) : 35;
+                  
+                  return accessNodes.slice(0, nodesToShow).map((node, nodeIndex) => {
                     const bucketX = 100 + (bucketIndex * 220);
-                    const accessY = 100 + (nodeIndex * 35) + 15;
+                    const accessY = 110 + (nodeIndex * nodeSpacing) + 15;
                     const accessX = bucketX + 100;
                     const isRead = node.type === 'read';
                     
