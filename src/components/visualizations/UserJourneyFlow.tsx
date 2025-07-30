@@ -422,9 +422,9 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                 return entityAccesses.slice(0, 12).map((access, accessIndex) => {
                   const isRead = access.accessType.toLowerCase().includes('read');
                   
-                  // Calculate positions - start from the actual black circle connection point
-                  const connectionPointX = 340; // Move way left closer to the table
-                  const connectionPointY = 110 + (entityDisplayIndex * 56); // Exact vertical position
+                  // Calculate positions - start from the bottom edge of the black circle
+                  const connectionPointX = 340; // X position of circle center
+                  const connectionPointY = 110 + (entityDisplayIndex * 56) + 24; // Bottom edge of circle (center + radius)
                   
                   // Target position in the time bucket
                   const bucketStartX = 450; // Start of time buckets area
@@ -432,13 +432,13 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                   const targetX = bucketStartX + (bucketIndex * (bucketWidth + 16)) + (bucketWidth / 2);
                   const targetY = 180 + (accessIndex * 60);
                   
-                  // Create path from black circle edge to access item
+                  // Create curved path from bottom edge of circle to access item
                   const controlX1 = connectionPointX + 80;
-                  const controlY1 = connectionPointY - 30;
+                  const controlY1 = connectionPointY + 20;
                   const controlX2 = targetX - 80;
                   const controlY2 = targetY - 30;
                   
-                  const path = `M ${connectionPointX + 24} ${connectionPointY} C ${controlX1} ${controlY1} ${controlX2} ${controlY2} ${targetX - 15} ${targetY}`;
+                  const path = `M ${connectionPointX} ${connectionPointY} C ${controlX1} ${controlY1} ${controlX2} ${controlY2} ${targetX - 15} ${targetY}`;
                   
                   return (
                     <g key={`connection-${entityName}-${bucketIndex}-${accessIndex}`}>
@@ -449,7 +449,6 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                         strokeWidth={3}
                         opacity={0.9}
                         markerEnd="url(#blackArrow)"
-                        strokeDasharray={isRead ? "none" : "8,4"}
                       />
                     </g>
                   );
