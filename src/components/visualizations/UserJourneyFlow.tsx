@@ -225,64 +225,6 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
       </div>
       
       <div className="flex gap-6">
-        {/* Dataset Selection */}
-        <div className="w-80 flex-shrink-0">
-          <div className="mb-3">
-            <h4 className="text-sm font-medium">Selected Datasets ({selectedEntities.size})</h4>
-          </div>
-          <div className="border border-border rounded-lg bg-card h-[520px] flex flex-col">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-16">Select</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Dataset FQN</TableHead>
-                </TableRow>
-              </TableHeader>
-            </Table>
-            <div className="flex-1 overflow-y-auto">
-              <Table>
-                <TableBody>
-                  {uniqueEntities.map((entity) => {
-                    const isSelected = selectedEntities.has(entity.name);
-                    const readCount = entity.accesses.filter(a => 
-                      a.accessType.toLowerCase().includes('read')
-                    ).length;
-                    const modifyCount = entity.accesses.filter(a => 
-                      !a.accessType.toLowerCase().includes('read')
-                    ).length;
-                    
-                    return (
-                      <TableRow key={entity.name}>
-                        <TableCell>
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={() => toggleEntitySelection(entity.name)}
-                          />
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          Dataset
-                        </TableCell>
-                        <TableCell className="text-xs font-mono">
-                          <div className="max-w-32 truncate" title={entity.name}>
-                            {entity.name}
-                          </div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {perspective === 'user-journey' && 'id' in entity ? String(entity.id) : ''}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {readCount}R / {modifyCount}M
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        </div>
-
         {/* Visualization */}
         <div className="flex-1 overflow-x-auto">
           <svg
@@ -491,7 +433,7 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
               
               // Calculate start position based on table row
               const startY = 100 + (entityIndex * 40); // Approximate table row height
-              const startX = 0; // Left edge of SVG
+              const startX = 800; // Right edge of SVG (now visualization is on left)
               
               return timeBuckets.map((bucket, bucketIndex) => {
                 const entityAccesses = bucket.accesses.filter(a => 
@@ -558,7 +500,7 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                     // Calculate curved path
                     const midX = (startX + accessX) / 2;
                     const controlY = Math.min(startY, accessY) - 50;
-                    const path = `M ${startX} ${startY} Q ${midX} ${controlY} ${accessX - 16} ${accessY}`;
+                    const path = `M ${startX} ${startY} Q ${midX} ${controlY} ${accessX + 16} ${accessY}`;
                     
                     return (
                       <g key={`edge-${entityName}-${bucketIndex}-${node.user}-${node.type}`}>
@@ -593,6 +535,64 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
               <text x={235} y={9} fontSize="10" fill="hsl(var(--foreground))">Dashed = Modify</text>
             </g>
           </svg>
+        </div>
+
+        {/* Dataset Selection */}
+        <div className="w-80 flex-shrink-0">
+          <div className="mb-3">
+            <h4 className="text-sm font-medium">Selected Datasets ({selectedEntities.size})</h4>
+          </div>
+          <div className="border border-border rounded-lg bg-card h-[520px] flex flex-col">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-16">Select</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Dataset FQN</TableHead>
+                </TableRow>
+              </TableHeader>
+            </Table>
+            <div className="flex-1 overflow-y-auto">
+              <Table>
+                <TableBody>
+                  {uniqueEntities.map((entity) => {
+                    const isSelected = selectedEntities.has(entity.name);
+                    const readCount = entity.accesses.filter(a => 
+                      a.accessType.toLowerCase().includes('read')
+                    ).length;
+                    const modifyCount = entity.accesses.filter(a => 
+                      !a.accessType.toLowerCase().includes('read')
+                    ).length;
+                    
+                    return (
+                      <TableRow key={entity.name}>
+                        <TableCell>
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleEntitySelection(entity.name)}
+                          />
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          Dataset
+                        </TableCell>
+                        <TableCell className="text-xs font-mono">
+                          <div className="max-w-32 truncate" title={entity.name}>
+                            {entity.name}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {perspective === 'user-journey' && 'id' in entity ? String(entity.id) : ''}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {readCount}R / {modifyCount}M
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
         </div>
       </div>
       
