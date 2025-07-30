@@ -423,7 +423,7 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                   const isRead = access.accessType.toLowerCase().includes('read');
                   
                   // Calculate positions - start from the bottom edge of the black circle
-                  const connectionPointX = 100; // X position of circle center
+                  const connectionPointX = 456; // X position where the black circles actually are (after table + gap)
                   const connectionPointY = 110 + (entityDisplayIndex * 56) + 24; // Bottom edge of circle (center + radius)
                   
                   // Target position in the time bucket
