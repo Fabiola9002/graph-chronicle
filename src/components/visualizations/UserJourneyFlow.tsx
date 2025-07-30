@@ -92,18 +92,25 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
     }
   }, [uniqueDatasets, selectedEntities.size]);
 
-  // Generate time buckets with consistent names
+  // Generate time buckets based on actual data timeline
   const timeBuckets = useMemo(() => {
     const buckets: TimeBucket[] = [];
-    const now = new Date();
-    const baseHour = now.getHours();
+    
+    if (data.length === 0) return buckets;
+    
+    // Get min and max timestamps from data
+    const timestamps = data.map(d => d.timestamp.getTime());
+    const minTime = Math.min(...timestamps);
+    const maxTime = Math.max(...timestamps);
+    const timeRange = maxTime - minTime;
+    
+    // Create 3 time buckets based on current time slider position
+    const bucketDuration = timeRange / 3;
+    const startOffset = (currentHour / 23) * timeRange;
     
     for (let i = 0; i < 3; i++) {
-      const hour = (baseHour + currentHour + i) % 24;
-      const bucketStart = new Date(now);
-      bucketStart.setHours(hour, 0, 0, 0);
-      const bucketEnd = new Date(bucketStart);
-      bucketEnd.setHours(hour + 1, 0, 0, 0);
+      const bucketStart = new Date(minTime + startOffset + (i * bucketDuration));
+      const bucketEnd = new Date(minTime + startOffset + ((i + 1) * bucketDuration));
       
       const relevantAccesses = data.filter(access => {
         if (selectedEntities.size === 0) return false;
@@ -119,7 +126,7 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
       });
       
       buckets.push({
-        hour,
+        hour: i,
         label: `Period ${i + 1}`,
         accesses: relevantAccesses
       });
