@@ -178,43 +178,6 @@ const [filters, setFilters] = useState({
   return (
     <div className="min-h-screen bg-gradient-subtle p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Playback Controls */}
-        <div className="flex items-center justify-end">
-          <div className="flex items-center gap-4 bg-card p-4 rounded-lg shadow-elegant">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleReset}
-              className="h-8"
-            >
-              <SkipBack className="h-4 w-4" />
-            </Button>
-            
-            <Button
-              variant={isPlaying ? "secondary" : "default"}
-              size="sm"
-              onClick={handlePlayPause}
-              className="h-8 w-16"
-            >
-              {isPlaying ? <Pause className="h-4 w-4" /> : <PlayCircle className="h-4 w-4" />}
-            </Button>
-            
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Speed:</span>
-              <Select value={playbackSpeed.toString()} onValueChange={(v) => setPlaybackSpeed(Number(v))}>
-                <SelectTrigger className="w-20 h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0.5">0.5x</SelectItem>
-                  <SelectItem value="1">1x</SelectItem>
-                  <SelectItem value="2">2x</SelectItem>
-                  <SelectItem value="5">5x</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
 
 
         {/* Main Content Grid */}
