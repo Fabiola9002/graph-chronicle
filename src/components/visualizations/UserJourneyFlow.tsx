@@ -383,48 +383,89 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                     {accesses.length} access{accesses.length !== 1 ? 'es' : ''}
                   </text>
                   
-                  {/* Access details */}
-                  {accesses.slice(0, 12).map((access, accessIndex) => {
-                    const y = 100 + (accessIndex * 35);
-                    const isRead = access.accessType.toLowerCase().includes('read');
+                  {/* Access details - Group by user and access type */}
+                  {(() => {
+                    // Group accesses by user and access type (max 2 nodes per user: read + modify)
+                    const userAccessMap = new Map<string, { read?: DatasetAccess[], modify?: DatasetAccess[] }>();
                     
-                    // Show different info based on perspective - for user journey show user names
-                    const displayName = perspective === 'user-journey' 
-                      ? access.userName.substring(0, 3)
-                      : access.userName.substring(0, 3);
+                    accesses.forEach(access => {
+                      const userName = access.userName;
+                      const isRead = access.accessType.toLowerCase().includes('read');
+                      
+                      if (!userAccessMap.has(userName)) {
+                        userAccessMap.set(userName, {});
+                      }
+                      
+                      const userAccess = userAccessMap.get(userName)!;
+                      if (isRead) {
+                        if (!userAccess.read) userAccess.read = [];
+                        userAccess.read.push(access);
+                      } else {
+                        if (!userAccess.modify) userAccess.modify = [];
+                        userAccess.modify.push(access);
+                      }
+                    });
                     
-                    return (
-                      <g key={`${access.id}-${accessIndex}`}>
-                        <circle
-                          cx={x + 100}
-                          cy={y + 15}
-                          r={16}
-                          fill={isRead ? 'hsl(var(--chart-2))' : 'hsl(var(--chart-1))'}
-                          stroke="hsl(var(--border))"
-                          strokeWidth={2}
-                        />
-                        <text
-                          x={x + 100}
-                          y={y + 12}
-                          textAnchor="middle"
-                          fontSize="8"
-                          fill="white"
-                          fontWeight="medium"
-                        >
-                          {displayName}
-                        </text>
-                        <text
-                          x={x + 100}
-                          y={y + 20}
-                          textAnchor="middle"
-                          fontSize="7"
-                          fill="white"
-                        >
-                          {isRead ? 'R' : 'M'}
-                        </text>
-                      </g>
-                    );
-                  })}
+                    // Create access nodes (max 2 per user: one read, one modify)
+                    const accessNodes: Array<{ user: string; type: 'read' | 'modify'; accesses: DatasetAccess[]; count: number }> = [];
+                    
+                    userAccessMap.forEach((accessTypes, userName) => {
+                      if (accessTypes.read && accessTypes.read.length > 0) {
+                        accessNodes.push({
+                          user: userName,
+                          type: 'read',
+                          accesses: accessTypes.read,
+                          count: accessTypes.read.length
+                        });
+                      }
+                      if (accessTypes.modify && accessTypes.modify.length > 0) {
+                        accessNodes.push({
+                          user: userName,
+                          type: 'modify',
+                          accesses: accessTypes.modify,
+                          count: accessTypes.modify.length
+                        });
+                      }
+                    });
+                    
+                    return accessNodes.slice(0, 12).map((node, nodeIndex) => {
+                      const y = 100 + (nodeIndex * 35);
+                      const isRead = node.type === 'read';
+                      const displayName = node.user.substring(0, 3);
+                      
+                      return (
+                        <g key={`${node.user}-${node.type}-${nodeIndex}`}>
+                          <circle
+                            cx={x + 100}
+                            cy={y + 15}
+                            r={16}
+                            fill={isRead ? 'hsl(var(--chart-2))' : 'hsl(var(--chart-1))'}
+                            stroke="hsl(var(--border))"
+                            strokeWidth={2}
+                          />
+                          <text
+                            x={x + 100}
+                            y={y + 12}
+                            textAnchor="middle"
+                            fontSize="8"
+                            fill="white"
+                            fontWeight="medium"
+                          >
+                            {displayName}
+                          </text>
+                          <text
+                            x={x + 100}
+                            y={y + 20}
+                            textAnchor="middle"
+                            fontSize="7"
+                            fill="white"
+                          >
+                            {isRead ? 'R' : 'M'}{node.count > 1 ? node.count : ''}
+                          </text>
+                        </g>
+                      );
+                    });
+                  })()}
                   
                   {accesses.length > 12 && (
                     <text
@@ -456,34 +497,74 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                     ? a.datasetName === entityName
                     : a.datasetName === entityName
                 );
-                if (entityAccesses.length === 0) return null;
-                
-                const bucketX = 100 + (bucketIndex * 220);
-                
-                return entityAccesses.slice(0, 12).map((access, accessIndex) => {
-                  const accessY = 100 + (accessIndex * 35) + 15;
-                  const accessX = bucketX + 100;
-                  const isRead = access.accessType.toLowerCase().includes('read');
+                return entityAccesses.length === 0 ? null : (() => {
+                  // Group accesses by user and access type for edge drawing
+                  const userAccessMap = new Map<string, { read?: DatasetAccess[], modify?: DatasetAccess[] }>();
                   
-                  // Calculate curved path
-                  const midX = (startX + accessX) / 2;
-                  const controlY = Math.min(startY, accessY) - 50;
-                  const path = `M ${startX} ${startY} Q ${midX} ${controlY} ${accessX - 16} ${accessY}`;
+                  entityAccesses.forEach(access => {
+                    const userName = access.userName;
+                    const isRead = access.accessType.toLowerCase().includes('read');
+                    
+                    if (!userAccessMap.has(userName)) {
+                      userAccessMap.set(userName, {});
+                    }
+                    
+                    const userAccess = userAccessMap.get(userName)!;
+                    if (isRead) {
+                      if (!userAccess.read) userAccess.read = [];
+                      userAccess.read.push(access);
+                    } else {
+                      if (!userAccess.modify) userAccess.modify = [];
+                      userAccess.modify.push(access);
+                    }
+                  });
                   
-                  return (
-                    <g key={`edge-${entityName}-${bucketIndex}-${accessIndex}`}>
-                      <path
-                        d={path}
-                        fill="none"
-                        stroke={isRead ? 'hsl(var(--chart-2))' : 'hsl(var(--chart-1))'}
-                        strokeWidth={3}
-                        opacity={0.8}
-                        markerEnd={isRead ? "url(#readArrow)" : "url(#modifyArrow)"}
-                        strokeDasharray={isRead ? "none" : "5,5"}
-                      />
-                    </g>
-                  );
-                });
+                  // Create edges for access nodes (max 2 per user: one read, one modify)
+                  const accessNodes: Array<{ user: string; type: 'read' | 'modify'; accesses: DatasetAccess[] }> = [];
+                  
+                  userAccessMap.forEach((accessTypes, userName) => {
+                    if (accessTypes.read && accessTypes.read.length > 0) {
+                      accessNodes.push({
+                        user: userName,
+                        type: 'read',
+                        accesses: accessTypes.read
+                      });
+                    }
+                    if (accessTypes.modify && accessTypes.modify.length > 0) {
+                      accessNodes.push({
+                        user: userName,
+                        type: 'modify',
+                        accesses: accessTypes.modify
+                      });
+                    }
+                  });
+                  
+                  return accessNodes.slice(0, 12).map((node, nodeIndex) => {
+                    const bucketX = 100 + (bucketIndex * 220);
+                    const accessY = 100 + (nodeIndex * 35) + 15;
+                    const accessX = bucketX + 100;
+                    const isRead = node.type === 'read';
+                    
+                    // Calculate curved path
+                    const midX = (startX + accessX) / 2;
+                    const controlY = Math.min(startY, accessY) - 50;
+                    const path = `M ${startX} ${startY} Q ${midX} ${controlY} ${accessX - 16} ${accessY}`;
+                    
+                    return (
+                      <g key={`edge-${entityName}-${bucketIndex}-${node.user}-${node.type}`}>
+                        <path
+                          d={path}
+                          fill="none"
+                          stroke={isRead ? 'hsl(var(--chart-2))' : 'hsl(var(--chart-1))'}
+                          strokeWidth={3}
+                          opacity={0.8}
+                          markerEnd={isRead ? "url(#readArrow)" : "url(#modifyArrow)"}
+                          strokeDasharray={isRead ? "none" : "5,5"}
+                        />
+                      </g>
+                    );
+                  });
+                })();
               });
             })}
 
