@@ -228,8 +228,8 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                   </TableHead>
                 </TableRow>
               </TableHeader>
-               <TableBody>
-                {visibleDatasets.map((dataset) => {
+              <TableBody>
+                {visibleDatasets.map((dataset, datasetIndex) => {
                   const isSelected = selectedEntities.has(dataset.name);
                   const readCount = dataset.accesses.filter(a => 
                     a.accessType.toLowerCase().includes('read')
@@ -239,7 +239,7 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                   ).length;
                   
                   return (
-                    <TableRow key={dataset.name}>
+                    <TableRow key={dataset.name} className="h-20">
                       <TableCell>
                         <Checkbox
                           checked={isSelected}
@@ -289,19 +289,33 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
           )}
         </div>
 
-        {/* Dynamic User Nodes */}
-        <div className="flex flex-col justify-start pt-16 gap-6 px-4 w-40">
-          {dynamicUserNodes.map((user, index) => (
-            <div key={user.name} className="h-20 flex items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-secondary-foreground text-xs font-medium shadow-lg">
-                {user.name.substring(0, 2).toUpperCase()}
+        {/* Dynamic User Nodes - Aligned with table rows */}
+        <div className="flex flex-col justify-start pt-16 w-40">
+          {visibleDatasets.map((dataset, datasetIndex) => {
+            const isSelected = selectedEntities.has(dataset.name);
+            if (!isSelected) {
+              return <div key={dataset.name} className="h-20"></div>;
+            }
+            
+            const datasetUsers = Array.from(dataset.users).slice(0, 3); // Show max 3 users per dataset
+            
+            return (
+              <div key={dataset.name} className="h-20 flex items-center px-2">
+                <div className="flex flex-col gap-1">
+                  {datasetUsers.map((userName, userIndex) => (
+                    <div key={userName} className="flex items-center gap-1">
+                      <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-secondary-foreground text-[10px] font-medium shadow-sm">
+                        {userName.substring(0, 2).toUpperCase()}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground truncate w-16" title={userName}>
+                        {userName}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="text-xs text-muted-foreground">
-                <div className="font-medium truncate w-20" title={user.name}>{user.name}</div>
-                <div>{user.readCount}R / {user.modifyCount}M</div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Visualization Area */}
@@ -321,15 +335,20 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                     {bucket.label}
                   </div>
                   
-                  {/* R/M Nodes aligned with users */}
-                  <div className="p-4 pt-16 space-y-6">
-                    {dynamicUserNodes.map((user, userIndex) => {
-                      const userAccesses = bucket.accesses.filter(a => a.userName === user.name);
-                      const readCount = userAccesses.filter(a => a.accessType.toLowerCase().includes('read')).length;
-                      const modifyCount = userAccesses.filter(a => !a.accessType.toLowerCase().includes('read')).length;
+                  {/* R/M Nodes aligned with table rows */}
+                  <div className="p-4 pt-16">
+                    {visibleDatasets.map((dataset, datasetIndex) => {
+                      const isSelected = selectedEntities.has(dataset.name);
+                      if (!isSelected) {
+                        return <div key={dataset.name} className="h-20"></div>;
+                      }
+                      
+                      const datasetAccesses = bucket.accesses.filter(a => a.datasetName === dataset.name);
+                      const readCount = datasetAccesses.filter(a => a.accessType.toLowerCase().includes('read')).length;
+                      const modifyCount = datasetAccesses.filter(a => !a.accessType.toLowerCase().includes('read')).length;
 
                       return (
-                        <div key={`user-${user.name}-${index}`} className="h-20 flex items-center justify-center gap-2">
+                        <div key={`dataset-${dataset.name}-${index}`} className="h-20 flex items-center justify-center gap-2">
                           {/* Read Node */}
                           {readCount > 0 && (
                             <div className="w-8 h-8 rounded bg-chart-2 flex items-center justify-center text-white text-xs font-bold shadow-lg">
