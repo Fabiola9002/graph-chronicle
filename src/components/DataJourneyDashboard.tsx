@@ -229,213 +229,51 @@ const [filters, setFilters] = useState({
         {/* Metrics Overview */}
         <MetricCards data={filteredData} />
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-12 gap-6">
-
-          {/* Center Panel - Visualizations */}
-          <div className="col-span-10">
-            <Card className="shadow-elegant">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Activity className="h-5 w-5 text-accent" />
-                    Data Access Visualization
-                  </CardTitle>
-                  
-                  <Carousel className="w-full max-w-md">
-                    <CarouselContent>
-                      <CarouselItem>
-                        <Button 
-                          variant={selectedVisualization === "heatmap" ? "default" : "outline"}
-                          onClick={() => setSelectedVisualization("heatmap")}
-                          size="sm"
-                        >
-                          Heatmap
-                        </Button>
-                      </CarouselItem>
-                      <CarouselItem>
-                        <Button 
-                          variant={selectedVisualization === "flow" ? "default" : "outline"}
-                          onClick={() => setSelectedVisualization("flow")}
-                          size="sm"
-                        >
-                          Flow
-                        </Button>
-                      </CarouselItem>
-                      <CarouselItem>
-                        <Button 
-                          variant={selectedVisualization === "timeline" ? "default" : "outline"}
-                          onClick={() => setSelectedVisualization("timeline")}
-                          size="sm"
-                        >
-                          Timeline
-                        </Button>
-                      </CarouselItem>
-                      <CarouselItem>
-                        <Button 
-                          variant={selectedVisualization === "sankey" ? "default" : "outline"}
-                          onClick={() => setSelectedVisualization("sankey")}
-                          size="sm"
-                        >
-                          Sankey
-                        </Button>
-                      </CarouselItem>
-                       <CarouselItem>
-                         <Button 
-                           variant={selectedVisualization === "tree" ? "default" : "outline"}
-                           onClick={() => setSelectedVisualization("tree")}
-                           size="sm"
-                         >
-                           Tree
-                         </Button>
-                       </CarouselItem>
-                       <CarouselItem>
-                         <Button 
-                           variant={selectedVisualization === "journey" ? "default" : "outline"}
-                           onClick={() => setSelectedVisualization("journey")}
-                           size="sm"
-                         >
-                           Journey
-                         </Button>
-                       </CarouselItem>
-                    </CarouselContent>
-                    <CarouselPrevious />
-                    <CarouselNext />
-                  </Carousel>
-                </div>
-                
-                {selectedVisualization === "tree" && (
-                  <div className="flex items-center gap-4 mb-4">
-                    <span className="text-sm text-muted-foreground">Hierarchy:</span>
-                    <Select value={treeHierarchy} onValueChange={(v: any) => setTreeHierarchy(v)}>
-                      <SelectTrigger className="w-48">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="dataset-orgs-users">Dataset → Orgs → Users</SelectItem>
-                        <SelectItem value="user-platform-dataset">User → Platform → Dataset</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                
-                {selectedVisualization === "journey" && (
-                  <div className="flex items-center gap-4 mb-4">
-                    <span className="text-sm text-muted-foreground">Perspective:</span>
-                    <Select value={journeyPerspective} onValueChange={(v: any) => setJourneyPerspective(v)}>
-                      <SelectTrigger className="w-48">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="user-journey">User Journey</SelectItem>
-                        <SelectItem value="dataset-journey">Dataset Journey</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+        {/* Main Content - Full Width Journey Visualization */}
+        <div className="grid grid-cols-1">
+          <Card className="shadow-elegant">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-accent" />
+                  Data Access Visualization
+                </CardTitle>
                 
                 <div className="flex items-center gap-4">
-                  <span className="text-sm text-muted-foreground">Timeline:</span>
-                  <div className="flex-1">
-                    <Slider
-                      value={[currentTime]}
-                      onValueChange={([value]) => setCurrentTime(value)}
-                      max={100}
-                      step={1}
-                      className="w-full"
-                    />
-                  </div>
-                  <span className="text-sm text-muted-foreground">
-                    {Math.round(currentTime)}%
-                  </span>
+                  <span className="text-sm text-muted-foreground">Perspective:</span>
+                  <Select value={journeyPerspective} onValueChange={(v: any) => setJourneyPerspective(v)}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user-journey">User Journey</SelectItem>
+                      <SelectItem value="dataset-journey">Dataset Journey</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              </CardHeader>
+              </div>
               
-              <CardContent className="h-[600px]">
-                {selectedVisualization === "heatmap" && (
-                  <AccessHeatmap data={filteredData} />
-                )}
-                {selectedVisualization === "flow" && (
-                  <UserDatasetFlow data={filteredData} />
-                )}
-                {selectedVisualization === "timeline" && (
-                  <TimelineChart data={filteredData} />
-                )}
-                {selectedVisualization === "sankey" && (
-                  <SankeyDiagram data={filteredData} />
-                )}
-                {selectedVisualization === "tree" && (
-                  <TimelineCollapsibleTree 
-                    data={filteredData.map(d => ({
-                      user: d.userName,
-                      dataset: d.datasetName,
-                      accessType: d.accessType === 'execute' ? 'read' : d.accessType,
-                      timestamp: d.timestamp,
-                      department: d.department,
-                      duration: d.duration
-                    }))}
-                    hierarchy={treeHierarchy}
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-muted-foreground">Timeline:</span>
+                <div className="flex-1">
+                  <Slider
+                    value={[currentTime]}
+                    onValueChange={([value]) => setCurrentTime(value)}
+                    max={100}
+                    step={1}
+                    className="w-full"
                   />
-                )}
-                {selectedVisualization === "journey" && (
-                  <UserJourneyFlow data={filteredData} perspective={journeyPerspective} />
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Right Panel - Details */}
-          <div className="col-span-2 space-y-4">
-            {selectedUser && (
-              <Card className="shadow-elegant">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-info" />
-                    User Details
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="text-sm">
-                      <span className="font-medium">Name:</span> {selectedUser}
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {['Data Scientist', 'Analytics'].map(tag => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {selectedDataset && (
-              <Card className="shadow-elegant">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Database className="h-4 w-4 text-success" />
-                    Dataset Details
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="text-sm">
-                      <span className="font-medium">Name:</span> {selectedDataset}
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {['sensitive', 'production'].map(tag => (
-                        <Badge key={tag} variant="outline" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  {Math.round(currentTime)}%
+                </span>
+              </div>
+            </CardHeader>
+            
+            <CardContent className="h-[800px]">
+              <UserJourneyFlow data={filteredData} perspective={journeyPerspective} />
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
