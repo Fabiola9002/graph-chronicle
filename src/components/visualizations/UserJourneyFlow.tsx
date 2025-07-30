@@ -238,9 +238,9 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                           onCheckedChange={() => toggleEntitySelection(entity.name)}
                         />
                       </TableCell>
-                       <TableCell className="text-xs">
-                         {perspective === 'user-journey' ? 'User' : 'Dataset'}
-                       </TableCell>
+                      <TableCell className="text-xs">
+                        {perspective === 'user-journey' ? 'User' : 'Dataset'}
+                      </TableCell>
                       <TableCell className="text-xs font-mono">
                         <div className="max-w-32 truncate" title={entity.name}>
                           {entity.name}
@@ -279,42 +279,57 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
               </Button>
             </div>
           )}
-          
-          {uniqueEntities.length > maxNodesVisible && (
-            <div className="text-xs text-muted-foreground mt-2 text-center">
-              Showing {scrollOffset + 1}-{Math.min(scrollOffset + maxNodesVisible, uniqueEntities.length)} of {uniqueEntities.length}
-            </div>
-          )}
         </div>
 
-        {/* Visualization */}
+        {/* Connection Points */}
+        <div className="flex flex-col justify-start pt-20 gap-12">
+          {Array.from(selectedEntities).map((entityName) => {
+            const entityIndex = visibleEntities.findIndex(e => e.name === entityName);
+            if (entityIndex === -1) return null;
+            
+            const entity = visibleEntities[entityIndex];
+            const readCount = entity.accesses.filter(a => 
+              a.accessType.toLowerCase().includes('read')
+            ).length;
+            const modifyCount = entity.accesses.filter(a => 
+              !a.accessType.toLowerCase().includes('read')
+            ).length;
+            
+            return (
+              <div key={entityName} className="flex items-center gap-2">
+                <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white text-xs font-medium shadow-lg">
+                  {entityName.substring(0, 2).toUpperCase()}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  <div className="font-medium">{entityName}</div>
+                  <div>{readCount}R / {modifyCount}M</div>
+                </div>
+                <div className="w-4 h-4 rounded-full bg-chart-2 shadow-md" data-connection-point={entityName}></div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Visualization Area */}
         <div className="flex-1 relative">
-          {/* Background visualization content */}
-          <div className="border border-border rounded-lg bg-card p-4" style={{ height: '600px' }}>
-            {/* Time bucket columns */}
+          {/* Time bucket columns */}
+          <div className="flex gap-4">
             {timeBuckets.map((bucket, index) => {
-              const x = 50 + (index * 200);
               const accesses = bucket.accesses;
               
               return (
                 <div 
                   key={index}
-                  className="absolute border border-border rounded-lg bg-background"
-                  style={{
-                    left: `${x}px`,
-                    top: '50px',
-                    width: '180px',
-                    height: '480px'
-                  }}
+                  className="flex-1 border border-border rounded-lg bg-card min-h-[500px]"
                 >
                   {/* Hour label */}
-                  <div className="text-center font-bold text-sm p-2 border-b">
+                  <div className="text-center font-bold text-lg p-4 border-b">
                     {bucket.label}
                   </div>
                   
                   {/* Access count badge */}
-                  <div className="flex justify-center p-2">
-                    <div className={`px-3 py-1 rounded-full text-xs ${
+                  <div className="flex justify-center p-4">
+                    <div className={`px-4 py-2 rounded-full text-sm font-medium ${
                       accesses.length > 0 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
                     }`}>
                       {accesses.length} access{accesses.length !== 1 ? 'es' : ''}
@@ -322,117 +337,95 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                   </div>
                   
                   {/* Access details */}
-                  <div className="p-2 space-y-2">
+                  <div className="p-4 space-y-3">
                     {accesses.slice(0, 12).map((access, accessIndex) => {
                       const isRead = access.accessType.toLowerCase().includes('read');
                       const displayName = perspective === 'user-journey' 
-                        ? access.datasetName.substring(0, 3)
-                        : access.userName.substring(0, 3);
+                        ? access.datasetName
+                        : access.userName;
                       
-                       return (
-                         <div 
-                           key={`${access.id}-${accessIndex}`}
-                           className={`w-8 h-8 rounded-full border-2 border-border flex items-center justify-center text-xs text-white font-medium mx-auto ${
-                             isRead ? 'bg-chart-2' : 'bg-chart-1'
-                           }`}
-                           data-access-id={`${access.id}-${index}-${accessIndex}`}
-                         >
-                           <div className="text-center">
-                             <div className="text-[7px]">{displayName}</div>
-                             <div className="text-[6px]">{isRead ? 'R' : 'M'}</div>
-                           </div>
-                         </div>
-                       );
+                      return (
+                        <div 
+                          key={`${access.id}-${accessIndex}`}
+                          className={`p-3 rounded-lg border-2 ${
+                            isRead ? 'bg-chart-2/10 border-chart-2' : 'bg-chart-1/10 border-chart-1'
+                          }`}
+                          data-access-target={`${access.id}-${index}-${accessIndex}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold ${
+                              isRead ? 'bg-chart-2' : 'bg-chart-1'
+                            }`}>
+                              {isRead ? 'R' : 'M'}
+                            </div>
+                            <div className="flex-1">
+                              <div className="text-sm font-medium truncate" title={displayName}>
+                                {displayName.length > 15 ? displayName.substring(0, 15) + '...' : displayName}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {access.accessType}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
                     })}
                     
                     {accesses.length > 12 && (
-                      <div className="text-center text-xs text-muted-foreground">
-                        +{accesses.length - 12} more
+                      <div className="text-center text-sm text-muted-foreground p-2 border border-dashed border-muted-foreground/50 rounded">
+                        +{accesses.length - 12} more accesses
                       </div>
                     )}
                   </div>
                 </div>
               );
             })}
-            
-            {/* Legend */}
-            <div className="absolute bottom-4 left-4 flex gap-4 text-xs">
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-chart-2"></div>
-                <span>Read</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-chart-1"></div>
-                <span>Modify</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-4 h-px bg-chart-2"></div>
-                <span>Solid = Read</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-4 h-px bg-chart-1" style={{ backgroundImage: 'repeating-linear-gradient(to right, currentColor 0, currentColor 3px, transparent 3px, transparent 6px)' }}></div>
-                <span>Dashed = Modify</span>
-              </div>
-            </div>
           </div>
           
-          {/* Overlay SVG for arrows */}
+          {/* SVG Overlay for connecting arrows */}
           <svg
             ref={svgRef}
             width="100%"
-            height="600"
+            height="100%"
             className="absolute top-0 left-0 pointer-events-none"
             style={{ zIndex: 10 }}
           >
-            {/* Arrow marker definitions */}
             <defs>
               <marker
                 id="readArrow"
-                markerWidth={12}
-                markerHeight={8}
-                refX={11}
-                refY={4}
+                markerWidth={10}
+                markerHeight={10}
+                refX={9}
+                refY={3}
                 orient="auto"
                 markerUnits="strokeWidth"
               >
                 <polygon
-                  points="0 0, 12 4, 0 8"
+                  points="0 0, 10 3, 0 6"
                   fill="hsl(var(--chart-2))"
-                  stroke="hsl(var(--chart-2))"
-                  strokeWidth={1}
                 />
               </marker>
               <marker
                 id="modifyArrow"
-                markerWidth={12}
-                markerHeight={8}
-                refX={11}
-                refY={4}
+                markerWidth={10}
+                markerHeight={10}
+                refX={9}
+                refY={3}
                 orient="auto"
                 markerUnits="strokeWidth"
               >
                 <polygon
-                  points="0 0, 12 4, 0 8"
+                  points="0 0, 10 3, 0 6"
                   fill="hsl(var(--chart-1))"
-                  stroke="hsl(var(--chart-1))"
-                  strokeWidth={1}
                 />
               </marker>
             </defs>
 
-            {/* Edges from selected entities to individual access circles */}
-            {Array.from(selectedEntities).map((entityName) => {
-              const entityIndex = visibleEntities.findIndex(e => e.name === entityName);
-              if (entityIndex === -1) return null;
-              
-              // Calculate start position from the table checkbox
-              const tableRowHeight = 45;
-              const tableHeaderHeight = 60;
-              const tableTop = 100; // Approximate position of table from top
-              const checkboxX = -300; // Position relative to SVG start (table is to the left)
-              const startY = tableTop + tableHeaderHeight + (entityIndex * tableRowHeight) + 20;
-              const startX = checkboxX;
-              
+            {/* Draw connecting arrows */}
+            {Array.from(selectedEntities).map((entityName, entityDisplayIndex) => {
+              const entity = uniqueEntities.find(e => e.name === entityName);
+              if (!entity) return null;
+
               return timeBuckets.map((bucket, bucketIndex) => {
                 const entityAccesses = bucket.accesses.filter(a => 
                   perspective === 'user-journey' 
@@ -440,21 +433,29 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                     : a.datasetName === entityName
                 );
                 if (entityAccesses.length === 0) return null;
-                
-                const bucketX = 50 + (bucketIndex * 200) + 90; // Center of bucket
-                
+
                 return entityAccesses.slice(0, 12).map((access, accessIndex) => {
-                  const accessY = 120 + (accessIndex * 35);
-                  const accessX = bucketX;
                   const isRead = access.accessType.toLowerCase().includes('read');
                   
-                  // Calculate path from checkbox to access circle
-                  const midX = (startX + accessX) / 2;
-                  const controlY = Math.min(startY, accessY) - 50;
-                  const path = `M ${startX} ${startY} Q ${midX} ${controlY} ${accessX - 12} ${accessY}`;
+                  // Calculate positions
+                  const connectionPointX = -50; // Connection point position (relative to SVG)
+                  const connectionPointY = 80 + (entityDisplayIndex * 80); // Vertical spacing between connection points
+                  
+                  const bucketWidth = 100 / timeBuckets.length; // Percentage width per bucket
+                  const targetX = (bucketIndex * bucketWidth) + (bucketWidth / 2); // Center of bucket (percentage)
+                  const targetXPx = (targetX / 100) * 800; // Convert to pixels (assume 800px width)
+                  const targetY = 120 + (accessIndex * 50); // Access item position
+                  
+                  // Create curved path
+                  const controlX1 = connectionPointX + 100;
+                  const controlY1 = connectionPointY - 30;
+                  const controlX2 = targetXPx - 100;
+                  const controlY2 = targetY - 30;
+                  
+                  const path = `M ${connectionPointX} ${connectionPointY} C ${controlX1} ${controlY1} ${controlX2} ${controlY2} ${targetXPx - 15} ${targetY}`;
                   
                   return (
-                    <g key={`edge-${entityName}-${bucketIndex}-${accessIndex}`}>
+                    <g key={`connection-${entityName}-${bucketIndex}-${accessIndex}`}>
                       <path
                         d={path}
                         fill="none"
@@ -470,6 +471,26 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
               });
             })}
           </svg>
+          
+          {/* Legend */}
+          <div className="absolute bottom-4 left-4 flex gap-4 text-sm bg-background/90 p-3 rounded-lg border">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full bg-chart-2"></div>
+              <span>Read Operations</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full bg-chart-1"></div>
+              <span>Modify Operations</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-px bg-chart-2"></div>
+              <span>Solid = Read</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-px bg-chart-1 opacity-60" style={{ backgroundImage: 'repeating-linear-gradient(to right, currentColor 0, currentColor 4px, transparent 4px, transparent 8px)' }}></div>
+              <span>Dashed = Modify</span>
+            </div>
+          </div>
         </div>
       </div>
       
