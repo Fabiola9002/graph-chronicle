@@ -321,37 +321,33 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                     {bucket.label}
                   </div>
                   
-                  {/* R/M Circles for each user */}
-                  <div className="p-4 space-y-4" style={{ paddingTop: '110px' }}>
-                    {dynamicUserNodes.map((user, userIndex) => {
-                      const userAccesses = bucket.accesses.filter(a => a.userName === user.name);
-                      if (userAccesses.length === 0) return null;
-
-                      const readCount = userAccesses.filter(a => a.accessType.toLowerCase().includes('read')).length;
-                      const modifyCount = userAccesses.filter(a => !a.accessType.toLowerCase().includes('read')).length;
-
-                      return (
-                        <div key={`circles-${user.name}-${index}`} className="space-y-2">
-                          {/* Read circle */}
-                          {readCount > 0 && (
-                            <div className="flex justify-center">
-                              <div className="w-12 h-12 rounded-full bg-chart-2 flex items-center justify-center text-white font-bold shadow-lg">
-                                R{readCount > 1 ? readCount : ''}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Modify circle */}
-                          {modifyCount > 0 && (
-                            <div className="flex justify-center">
-                              <div className="w-12 h-12 rounded-full bg-chart-1 flex items-center justify-center text-white font-bold shadow-lg">
-                                M{modifyCount > 1 ? modifyCount : ''}
-                              </div>
-                            </div>
-                          )}
+                  {/* R/M Nodes */}
+                  <div className="p-4 flex flex-col items-center justify-center space-y-8 h-full">
+                    {/* Read Node */}
+                    <div className="flex flex-col items-center">
+                      <div className="w-16 h-16 rounded-lg bg-chart-2 flex items-center justify-center text-white font-bold shadow-lg border-2 border-chart-2/20">
+                        <div className="text-center">
+                          <div className="text-xs">R</div>
+                          <div className="text-lg font-bold">
+                            {bucket.accesses.filter(a => a.accessType.toLowerCase().includes('read')).length}
+                          </div>
                         </div>
-                      );
-                    })}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-2">Reads</div>
+                    </div>
+                    
+                    {/* Modify Node */}
+                    <div className="flex flex-col items-center">
+                      <div className="w-16 h-16 rounded-lg bg-chart-1 flex items-center justify-center text-white font-bold shadow-lg border-2 border-chart-1/20">
+                        <div className="text-center">
+                          <div className="text-xs">M</div>
+                          <div className="text-lg font-bold">
+                            {bucket.accesses.filter(a => !a.accessType.toLowerCase().includes('read')).length}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-2">Modifies</div>
+                    </div>
                   </div>
                 </div>
               );
