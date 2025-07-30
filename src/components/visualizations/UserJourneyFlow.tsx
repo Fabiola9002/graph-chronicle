@@ -312,8 +312,8 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
               >
                 <polygon
                   points="0 0, 8 3, 0 6"
-                  fill="hsl(var(--chart-2))"
-                  stroke="hsl(var(--chart-2))"
+                  fill="hsl(330 81% 60%)"
+                  stroke="hsl(330 81% 60%)"
                 />
               </marker>
               <marker
@@ -327,8 +327,8 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
               >
                 <polygon
                   points="0 0, 8 3, 0 6"
-                  fill="hsl(var(--chart-1))"
-                  stroke="hsl(var(--chart-1))"
+                  fill="hsl(217 91% 60%)"
+                  stroke="hsl(217 91% 60%)"
                 />
               </marker>
             </defs>
@@ -439,7 +439,7 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                             cx={x + 100}
                             cy={y + 15}
                             r={16}
-                            fill={isRead ? 'hsl(var(--chart-2))' : 'hsl(var(--chart-1))'}
+                            fill={isRead ? 'hsl(330 81% 60%)' : 'hsl(217 91% 60%)'}
                             stroke="hsl(var(--border))"
                             strokeWidth={2}
                           />
@@ -555,7 +555,7 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                         <path
                           d={path}
                           fill="none"
-                          stroke={isRead ? 'hsl(var(--chart-2))' : 'hsl(var(--chart-1))'}
+                          stroke={isRead ? 'hsl(330 81% 60%)' : 'hsl(217 91% 60%)'}
                           strokeWidth={3}
                           opacity={0.8}
                           markerEnd={isRead ? "url(#readArrow)" : "url(#modifyArrow)"}
@@ -570,10 +570,10 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
 
             {/* Legend */}
             <g transform="translate(50, 560)">
-              <circle cx={5} cy={5} r={4} fill="hsl(var(--chart-2))" />
+              <circle cx={5} cy={5} r={4} fill="hsl(330 81% 60%)" />
               <text x={15} y={9} fontSize="10" fill="hsl(var(--foreground))">Read</text>
               
-              <circle cx={60} cy={5} r={4} fill="hsl(var(--chart-1))" />
+              <circle cx={60} cy={5} r={4} fill="hsl(217 91% 60%)" />
               <text x={70} y={9} fontSize="10" fill="hsl(var(--foreground))">Modify</text>
               
               <line x1={120} y1={5} x2={140} y2={5} stroke="hsl(var(--chart-2))" strokeWidth={2} />
