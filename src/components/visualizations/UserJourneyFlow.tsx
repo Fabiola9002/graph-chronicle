@@ -241,12 +241,10 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                       <TableCell className="text-xs">
                         {perspective === 'user-journey' ? 'User' : 'Dataset'}
                       </TableCell>
-                       <TableCell className="text-xs font-mono">
-                         <div className="max-w-32 truncate" title={entity.name}>
-                           {perspective === 'user-journey' 
-                             ? entity.name.split('.').pop() || entity.name
-                             : entity.name}
-                         </div>
+                      <TableCell className="text-xs font-mono">
+                        <div className="max-w-32 truncate" title={entity.name}>
+                          {entity.name}
+                        </div>
                         <div className="text-xs text-muted-foreground mt-1">
                           {readCount}R / {modifyCount}M
                         </div>
@@ -302,12 +300,8 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                 <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white text-xs font-medium shadow-lg">
                   {entityName.substring(0, 2).toUpperCase()}
                 </div>
-                 <div className="text-xs text-muted-foreground">
-                   <div className="font-medium">
-                     {perspective === 'user-journey' 
-                       ? entityName.split('.').pop() || entityName
-                       : entityName}
-                   </div>
+                <div className="text-xs text-muted-foreground">
+                  <div className="font-medium">{entityName}</div>
                   <div>{readCount}R / {modifyCount}M</div>
                 </div>
               </div>
@@ -318,7 +312,7 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
         {/* Visualization Area */}
         <div className="flex-1 relative">
           {/* Time bucket columns */}
-          <div className="flex gap-4" style={{ height: `${Math.max(500, 110 + (selectedEntities.size * 56) + 100)}px`, paddingTop: '110px' }}>
+          <div className="flex gap-4 h-[500px]">
             {timeBuckets.map((bucket, index) => {
               const accesses = bucket.accesses;
               
@@ -429,11 +423,11 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                   const isRead = access.accessType.toLowerCase().includes('read');
                   
                   // Calculate positions - start from the actual black circle connection point
-                  const connectionPointX = 140; // Move way left closer to the table
+                  const connectionPointX = 340; // Move way left closer to the table
                   const connectionPointY = 110 + (entityDisplayIndex * 56); // Exact vertical position
                   
                   // Target position in the time bucket
-                  const bucketStartX = 450; // Start of time buckets area
+                  const bucketStartX = 150; // Start of time buckets area
                   const bucketWidth = 200; // Width of each time bucket
                   const targetX = bucketStartX + (bucketIndex * (bucketWidth + 16)) + (bucketWidth / 2);
                   const targetY = 180 + (accessIndex * 60);
