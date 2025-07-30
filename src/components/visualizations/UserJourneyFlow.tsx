@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Play, Pause, RotateCcw, ChevronUp, ChevronDown } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface UserJourneyFlowProps {
   data: DatasetAccess[];
@@ -204,297 +206,299 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
         </div>
       </div>
       
-      <div className="relative w-full overflow-x-auto">
-        {/* Scroll controls */}
-        <div className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 flex flex-col gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleScrollUp}
-            disabled={!canScrollUp}
-            className="w-8 h-8 p-0"
-          >
-            <ChevronUp className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleScrollDown}
-            disabled={!canScrollDown}
-            className="w-8 h-8 p-0"
-          >
-            <ChevronDown className="w-4 h-4" />
-          </Button>
-        </div>
-
-        <svg
-          ref={svgRef}
-          width="1200"
-          height="600"
-          className="border border-border rounded-lg bg-card"
-        >
-          {/* Arrow marker definitions - must be first */}
-          <defs>
-            <marker
-              id="readArrow"
-              markerWidth={8}
-              markerHeight={6}
-              refX={7}
-              refY={3}
-              orient="auto"
-              markerUnits="strokeWidth"
-            >
-              <polygon
-                points="0 0, 8 3, 0 6"
-                fill="hsl(var(--chart-2))"
-                stroke="hsl(var(--chart-2))"
-              />
-            </marker>
-            <marker
-              id="modifyArrow"
-              markerWidth={8}
-              markerHeight={6}
-              refX={7}
-              refY={3}
-              orient="auto"
-              markerUnits="strokeWidth"
-            >
-              <polygon
-                points="0 0, 8 3, 0 6"
-                fill="hsl(var(--chart-1))"
-                stroke="hsl(var(--chart-1))"
-              />
-            </marker>
-          </defs>
-
-          {/* Entity nodes on the left */}
-          {visibleEntities.map((entity, index) => {
-            const y = 80 + (index * nodeHeight);
-            const isSelected = selectedEntities.has(entity.name);
-            
-            const secondaryCount = perspective === 'user-journey' 
-              ? (entity as any).datasets?.size || 0
-              : (entity as any).users?.size || 0;
-            
-            const secondaryLabel = perspective === 'user-journey' ? 'datasets' : 'users';
-            
-            return (
-              <g key={entity.name}>
-                <circle
-                  cx={125}
-                  cy={y}
-                  r={35}
-                  fill={isSelected ? 'hsl(var(--primary))' : 'hsl(var(--muted))'}
-                  stroke={isSelected ? 'hsl(var(--primary-foreground))' : 'hsl(var(--border))'}
-                  strokeWidth={3}
-                  className="cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => toggleEntitySelection(entity.name)}
-                />
-                <text
-                  x={125}
-                  y={y - 5}
-                  textAnchor="middle"
-                  fontSize="11"
-                  fill={isSelected ? 'hsl(var(--primary-foreground))' : 'hsl(var(--foreground))'}
-                  className="cursor-pointer font-medium"
-                  onClick={() => toggleEntitySelection(entity.name)}
-                >
-                  {entity.name.length > 8 ? entity.name.substring(0, 8) + '...' : entity.name}
-                </text>
-                <text
-                  x={125}
-                  y={y + 8}
-                  textAnchor="middle"
-                  fontSize="9"
-                  fill={isSelected ? 'hsl(var(--primary-foreground) / 0.8)' : 'hsl(var(--muted-foreground))'}
-                  className="cursor-pointer"
-                  onClick={() => toggleEntitySelection(entity.name)}
-                >
-                  {secondaryCount} {secondaryLabel}
-                </text>
-                <text
-                  x={125}
-                  y={y + 20}
-                  textAnchor="middle"
-                  fontSize="8"
-                  fill={isSelected ? 'hsl(var(--primary-foreground) / 0.6)' : 'hsl(var(--muted-foreground))'}
-                  className="cursor-pointer"
-                  onClick={() => toggleEntitySelection(entity.name)}
-                >
-                  {entity.accesses.length} total
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Time bucket columns */}
-          {timeBuckets.map((bucket, index) => {
-            const x = 350 + (index * 250);
-            const accesses = bucket.accesses;
-            
-            return (
-              <g key={index}>
-                {/* Time bucket container */}
-                <rect
-                  x={x}
-                  y={50}
-                  width={220}
-                  height={500}
-                  rx={8}
-                  fill="hsl(var(--card))"
-                  stroke="hsl(var(--border))"
-                  strokeWidth={1}
-                />
-                
-                {/* Hour label */}
-                <text
-                  x={x + 110}
-                  y={40}
-                  textAnchor="middle"
-                  fontSize="14"
-                  fill="hsl(var(--foreground))"
-                  fontWeight="bold"
-                >
-                  {bucket.label}
-                </text>
-                
-                {/* Access count badge */}
-                <rect
-                  x={x + 80}
-                  y={60}
-                  width={60}
-                  height={20}
-                  rx={10}
-                  fill={accesses.length > 0 ? 'hsl(var(--primary))' : 'hsl(var(--muted))'}
-                />
-                <text
-                  x={x + 110}
-                  y={73}
-                  textAnchor="middle"
-                  fontSize="10"
-                  fill={accesses.length > 0 ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))'}
-                >
-                  {accesses.length} access{accesses.length !== 1 ? 'es' : ''}
-                </text>
-                
-                {/* Access details */}
-                {accesses.slice(0, 12).map((access, accessIndex) => {
-                  const y = 100 + (accessIndex * 35);
-                  const isRead = access.accessType.toLowerCase().includes('read');
-                  
-                  // Show different info based on perspective
-                  const displayName = perspective === 'user-journey' 
-                    ? access.datasetName.substring(0, 3)
-                    : access.userName.substring(0, 3);
+      <div className="flex gap-6">
+        {/* Entity Selection Table */}
+        <div className="w-80 flex-shrink-0">
+          <div className="border border-border rounded-lg bg-card">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-16">Select</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>
+                    {perspective === 'user-journey' ? 'Dataset FQN' : 'User ID'}
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {visibleEntities.map((entity) => {
+                  const isSelected = selectedEntities.has(entity.name);
+                  const readCount = entity.accesses.filter(a => 
+                    a.accessType.toLowerCase().includes('read')
+                  ).length;
+                  const modifyCount = entity.accesses.filter(a => 
+                    !a.accessType.toLowerCase().includes('read')
+                  ).length;
                   
                   return (
-                    <g key={`${access.id}-${accessIndex}`}>
-                      <circle
-                        cx={x + 110}
-                        cy={y + 15}
-                        r={16}
-                        fill={isRead ? 'hsl(var(--chart-2))' : 'hsl(var(--chart-1))'}
-                        stroke="hsl(var(--border))"
-                        strokeWidth={2}
-                      />
-                      <text
-                        x={x + 110}
-                        y={y + 12}
-                        textAnchor="middle"
-                        fontSize="8"
-                        fill="white"
-                        fontWeight="medium"
-                      >
-                        {displayName}
-                      </text>
-                      <text
-                        x={x + 110}
-                        y={y + 20}
-                        textAnchor="middle"
-                        fontSize="7"
-                        fill="white"
-                      >
-                        {isRead ? 'R' : 'M'}
-                      </text>
-                    </g>
+                    <TableRow key={entity.name}>
+                      <TableCell>
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => toggleEntitySelection(entity.name)}
+                        />
+                      </TableCell>
+                       <TableCell className="text-xs">
+                         {perspective === 'user-journey' ? 'User' : 'Dataset'}
+                       </TableCell>
+                      <TableCell className="text-xs font-mono">
+                        <div className="max-w-32 truncate" title={entity.name}>
+                          {entity.name}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {readCount}R / {modifyCount}M
+                        </div>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-                
-                {accesses.length > 12 && (
+              </TableBody>
+            </Table>
+          </div>
+          
+          {/* Scroll controls for table */}
+          {uniqueEntities.length > maxNodesVisible && (
+            <div className="flex justify-center gap-2 mt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleScrollUp}
+                disabled={!canScrollUp}
+                className="w-8 h-8 p-0"
+              >
+                <ChevronUp className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleScrollDown}
+                disabled={!canScrollDown}
+                className="w-8 h-8 p-0"
+              >
+                <ChevronDown className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+          
+          {uniqueEntities.length > maxNodesVisible && (
+            <div className="text-xs text-muted-foreground mt-2 text-center">
+              Showing {scrollOffset + 1}-{Math.min(scrollOffset + maxNodesVisible, uniqueEntities.length)} of {uniqueEntities.length}
+            </div>
+          )}
+        </div>
+
+        {/* Visualization */}
+        <div className="flex-1 overflow-x-auto">
+          <svg
+            ref={svgRef}
+            width="800"
+            height="600"
+            className="border border-border rounded-lg bg-card"
+          >
+            {/* Arrow marker definitions - must be first */}
+            <defs>
+              <marker
+                id="readArrow"
+                markerWidth={8}
+                markerHeight={6}
+                refX={7}
+                refY={3}
+                orient="auto"
+                markerUnits="strokeWidth"
+              >
+                <polygon
+                  points="0 0, 8 3, 0 6"
+                  fill="hsl(var(--chart-2))"
+                  stroke="hsl(var(--chart-2))"
+                />
+              </marker>
+              <marker
+                id="modifyArrow"
+                markerWidth={8}
+                markerHeight={6}
+                refX={7}
+                refY={3}
+                orient="auto"
+                markerUnits="strokeWidth"
+              >
+                <polygon
+                  points="0 0, 8 3, 0 6"
+                  fill="hsl(var(--chart-1))"
+                  stroke="hsl(var(--chart-1))"
+                />
+              </marker>
+            </defs>
+
+            {/* Time bucket columns */}
+            {timeBuckets.map((bucket, index) => {
+              const x = 100 + (index * 220);
+              const accesses = bucket.accesses;
+              
+              return (
+                <g key={index}>
+                  {/* Time bucket container */}
+                  <rect
+                    x={x}
+                    y={50}
+                    width={200}
+                    height={500}
+                    rx={8}
+                    fill="hsl(var(--card))"
+                    stroke="hsl(var(--border))"
+                    strokeWidth={1}
+                  />
+                  
+                  {/* Hour label */}
                   <text
-                    x={x + 110}
-                    y={520}
+                    x={x + 100}
+                    y={40}
+                    textAnchor="middle"
+                    fontSize="14"
+                    fill="hsl(var(--foreground))"
+                    fontWeight="bold"
+                  >
+                    {bucket.label}
+                  </text>
+                  
+                  {/* Access count badge */}
+                  <rect
+                    x={x + 70}
+                    y={60}
+                    width={60}
+                    height={20}
+                    rx={10}
+                    fill={accesses.length > 0 ? 'hsl(var(--primary))' : 'hsl(var(--muted))'}
+                  />
+                  <text
+                    x={x + 100}
+                    y={73}
                     textAnchor="middle"
                     fontSize="10"
-                    fill="hsl(var(--muted-foreground))"
+                    fill={accesses.length > 0 ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))'}
                   >
-                    +{accesses.length - 12} more
+                    {accesses.length} access{accesses.length !== 1 ? 'es' : ''}
                   </text>
-                )}
-              </g>
-            );
-          })}
-
-          {/* Edges from selected entities to individual access circles */}
-          {Array.from(selectedEntities).map((entityName) => {
-            const entityIndex = visibleEntities.findIndex(e => e.name === entityName);
-            if (entityIndex === -1) return null;
-            
-            const startY = 80 + (entityIndex * nodeHeight);
-            const startX = 160; // Right edge of entity circle
-            
-            return timeBuckets.map((bucket, bucketIndex) => {
-              const entityAccesses = bucket.accesses.filter(a => 
-                perspective === 'user-journey' 
-                  ? a.userName === entityName
-                  : a.datasetName === entityName
+                  
+                  {/* Access details */}
+                  {accesses.slice(0, 12).map((access, accessIndex) => {
+                    const y = 100 + (accessIndex * 35);
+                    const isRead = access.accessType.toLowerCase().includes('read');
+                    
+                    // Show different info based on perspective
+                    const displayName = perspective === 'user-journey' 
+                      ? access.datasetName.substring(0, 3)
+                      : access.userName.substring(0, 3);
+                    
+                    return (
+                      <g key={`${access.id}-${accessIndex}`}>
+                        <circle
+                          cx={x + 100}
+                          cy={y + 15}
+                          r={16}
+                          fill={isRead ? 'hsl(var(--chart-2))' : 'hsl(var(--chart-1))'}
+                          stroke="hsl(var(--border))"
+                          strokeWidth={2}
+                        />
+                        <text
+                          x={x + 100}
+                          y={y + 12}
+                          textAnchor="middle"
+                          fontSize="8"
+                          fill="white"
+                          fontWeight="medium"
+                        >
+                          {displayName}
+                        </text>
+                        <text
+                          x={x + 100}
+                          y={y + 20}
+                          textAnchor="middle"
+                          fontSize="7"
+                          fill="white"
+                        >
+                          {isRead ? 'R' : 'M'}
+                        </text>
+                      </g>
+                    );
+                  })}
+                  
+                  {accesses.length > 12 && (
+                    <text
+                      x={x + 100}
+                      y={520}
+                      textAnchor="middle"
+                      fontSize="10"
+                      fill="hsl(var(--muted-foreground))"
+                    >
+                      +{accesses.length - 12} more
+                    </text>
+                  )}
+                </g>
               );
-              if (entityAccesses.length === 0) return null;
-              
-              const bucketX = 350 + (bucketIndex * 250);
-              
-              return entityAccesses.slice(0, 12).map((access, accessIndex) => {
-                const accessY = 100 + (accessIndex * 35) + 15;
-                const accessX = bucketX + 110;
-                const isRead = access.accessType.toLowerCase().includes('read');
-                
-                // Calculate curved path
-                const midX = (startX + accessX) / 2;
-                const controlY = Math.min(startY, accessY) - 30;
-                const path = `M ${startX} ${startY} Q ${midX} ${controlY} ${accessX - 16} ${accessY}`;
-                
-                return (
-                  <g key={`edge-${entityName}-${bucketIndex}-${accessIndex}`}>
-                    <path
-                      d={path}
-                      fill="none"
-                      stroke={isRead ? 'hsl(var(--chart-2))' : 'hsl(var(--chart-1))'}
-                      strokeWidth={2}
-                      opacity={0.7}
-                      markerEnd={isRead ? "url(#readArrow)" : "url(#modifyArrow)"}
-                      strokeDasharray={isRead ? "none" : "5,5"}
-                    />
-                  </g>
-                );
-              });
-            });
-          })}
+            })}
 
-          {/* Legend */}
-          <g transform="translate(50, 550)">
-            <circle cx={5} cy={5} r={4} fill="hsl(var(--chart-2))" />
-            <text x={15} y={9} fontSize="10" fill="hsl(var(--foreground))">Read</text>
-            
-            <circle cx={60} cy={5} r={4} fill="hsl(var(--chart-1))" />
-            <text x={70} y={9} fontSize="10" fill="hsl(var(--foreground))">Modify</text>
-            
-            <line x1={120} y1={5} x2={140} y2={5} stroke="hsl(var(--chart-2))" strokeWidth={2} />
-            <text x={145} y={9} fontSize="10" fill="hsl(var(--foreground))">Solid = Read</text>
-            
-            <line x1={210} y1={5} x2={230} y2={5} stroke="hsl(var(--chart-1))" strokeWidth={2} strokeDasharray="3,3" />
-            <text x={235} y={9} fontSize="10" fill="hsl(var(--foreground))">Dashed = Modify</text>
-          </g>
-        </svg>
+            {/* Edges from selected entities to individual access circles */}
+            {Array.from(selectedEntities).map((entityName) => {
+              const entityIndex = visibleEntities.findIndex(e => e.name === entityName);
+              if (entityIndex === -1) return null;
+              
+              // Calculate start position based on table row
+              const startY = 100 + (entityIndex * 40); // Approximate table row height
+              const startX = 0; // Left edge of SVG
+              
+              return timeBuckets.map((bucket, bucketIndex) => {
+                const entityAccesses = bucket.accesses.filter(a => 
+                  perspective === 'user-journey' 
+                    ? a.userName === entityName
+                    : a.datasetName === entityName
+                );
+                if (entityAccesses.length === 0) return null;
+                
+                const bucketX = 100 + (bucketIndex * 220);
+                
+                return entityAccesses.slice(0, 12).map((access, accessIndex) => {
+                  const accessY = 100 + (accessIndex * 35) + 15;
+                  const accessX = bucketX + 100;
+                  const isRead = access.accessType.toLowerCase().includes('read');
+                  
+                  // Calculate curved path
+                  const midX = (startX + accessX) / 2;
+                  const controlY = Math.min(startY, accessY) - 50;
+                  const path = `M ${startX} ${startY} Q ${midX} ${controlY} ${accessX - 16} ${accessY}`;
+                  
+                  return (
+                    <g key={`edge-${entityName}-${bucketIndex}-${accessIndex}`}>
+                      <path
+                        d={path}
+                        fill="none"
+                        stroke={isRead ? 'hsl(var(--chart-2))' : 'hsl(var(--chart-1))'}
+                        strokeWidth={3}
+                        opacity={0.8}
+                        markerEnd={isRead ? "url(#readArrow)" : "url(#modifyArrow)"}
+                        strokeDasharray={isRead ? "none" : "5,5"}
+                      />
+                    </g>
+                  );
+                });
+              });
+            })}
+
+            {/* Legend */}
+            <g transform="translate(50, 560)">
+              <circle cx={5} cy={5} r={4} fill="hsl(var(--chart-2))" />
+              <text x={15} y={9} fontSize="10" fill="hsl(var(--foreground))">Read</text>
+              
+              <circle cx={60} cy={5} r={4} fill="hsl(var(--chart-1))" />
+              <text x={70} y={9} fontSize="10" fill="hsl(var(--foreground))">Modify</text>
+              
+              <line x1={120} y1={5} x2={140} y2={5} stroke="hsl(var(--chart-2))" strokeWidth={2} />
+              <text x={145} y={9} fontSize="10" fill="hsl(var(--foreground))">Solid = Read</text>
+              
+              <line x1={210} y1={5} x2={230} y2={5} stroke="hsl(var(--chart-1))" strokeWidth={2} strokeDasharray="3,3" />
+              <text x={235} y={9} fontSize="10" fill="hsl(var(--foreground))">Dashed = Modify</text>
+            </g>
+          </svg>
+        </div>
       </div>
       
       {selectedEntities.size === 0 && (
