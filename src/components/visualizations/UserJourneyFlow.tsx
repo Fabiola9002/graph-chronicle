@@ -28,61 +28,69 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
   const maxNodesVisible = 7;
   const nodeHeight = 80;
 
-  // Get unique entities for the left side nodes (users or datasets based on perspective)
-  const uniqueEntities = useMemo(() => {
-    if (perspective === 'user-journey') {
-      const userMap = new Map<string, { 
-        name: string; 
-        datasets: Set<string>; 
-        accesses: DatasetAccess[] 
-      }>();
-      
-      data.forEach(access => {
+  // Get unique datasets for the left side nodes
+  const uniqueDatasets = useMemo(() => {
+    const datasetMap = new Map<string, { 
+      name: string; 
+      users: Set<string>; 
+      accesses: DatasetAccess[] 
+    }>();
+    
+    data.forEach(access => {
+      if (!datasetMap.has(access.datasetName)) {
+        datasetMap.set(access.datasetName, {
+          name: access.datasetName,
+          users: new Set(),
+          accesses: []
+        });
+      }
+      const dataset = datasetMap.get(access.datasetName)!;
+      dataset.users.add(access.userName);
+      dataset.accesses.push(access);
+    });
+    
+    return Array.from(datasetMap.values());
+  }, [data]);
+
+  // Get dynamic user nodes based on selected datasets
+  const dynamicUserNodes = useMemo(() => {
+    const userMap = new Map<string, { 
+      name: string; 
+      accesses: DatasetAccess[];
+      readCount: number;
+      modifyCount: number;
+    }>();
+    
+    data.forEach(access => {
+      if (selectedEntities.has(access.datasetName)) {
         if (!userMap.has(access.userName)) {
           userMap.set(access.userName, {
             name: access.userName,
-            datasets: new Set(),
-            accesses: []
+            accesses: [],
+            readCount: 0,
+            modifyCount: 0
           });
         }
         const user = userMap.get(access.userName)!;
-        user.datasets.add(access.datasetName);
         user.accesses.push(access);
-      });
-      
-      return Array.from(userMap.values());
-    } else {
-      // Dataset journey perspective
-      const datasetMap = new Map<string, { 
-        name: string; 
-        users: Set<string>; 
-        accesses: DatasetAccess[] 
-      }>();
-      
-      data.forEach(access => {
-        if (!datasetMap.has(access.datasetName)) {
-          datasetMap.set(access.datasetName, {
-            name: access.datasetName,
-            users: new Set(),
-            accesses: []
-          });
+        if (access.accessType.toLowerCase().includes('read')) {
+          user.readCount++;
+        } else {
+          user.modifyCount++;
         }
-        const dataset = datasetMap.get(access.datasetName)!;
-        dataset.users.add(access.userName);
-        dataset.accesses.push(access);
-      });
-      
-      return Array.from(datasetMap.values());
-    }
-  }, [data, perspective]);
+      }
+    });
+    
+    return Array.from(userMap.values());
+  }, [data, selectedEntities]);
 
-  // Auto-select first few entities for initial visibility
+  // Auto-select first few datasets for initial visibility
   useEffect(() => {
-    if (uniqueEntities.length > 0 && selectedEntities.size === 0) {
-      const entitiesToSelect = uniqueEntities.slice(0, Math.min(3, uniqueEntities.length));
-      setSelectedEntities(new Set(entitiesToSelect.map(e => e.name)));
+    if (uniqueDatasets.length > 0 && selectedEntities.size === 0) {
+      const datasetsToSelect = uniqueDatasets.slice(0, Math.min(3, uniqueDatasets.length));
+      setSelectedEntities(new Set(datasetsToSelect.map(e => e.name)));
     }
-  }, [uniqueEntities, selectedEntities.size]);
+  }, [uniqueDatasets, selectedEntities.size]);
 
   // Generate time buckets based on current hour
   const timeBuckets = useMemo(() => {
@@ -157,12 +165,12 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
   };
 
   const handleScrollDown = () => {
-    setScrollOffset(prev => Math.min(uniqueEntities.length - maxNodesVisible, prev + 1));
+    setScrollOffset(prev => Math.min(uniqueDatasets.length - maxNodesVisible, prev + 1));
   };
 
-  const visibleEntities = uniqueEntities.slice(scrollOffset, scrollOffset + maxNodesVisible);
+  const visibleDatasets = uniqueDatasets.slice(scrollOffset, scrollOffset + maxNodesVisible);
   const canScrollUp = scrollOffset > 0;
-  const canScrollDown = scrollOffset < uniqueEntities.length - maxNodesVisible;
+  const canScrollDown = scrollOffset < uniqueDatasets.length - maxNodesVisible;
 
   const entityTypeLabel = perspective === 'user-journey' ? 'User' : 'Dataset';
 
@@ -220,30 +228,30 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                   </TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
-                {visibleEntities.map((entity) => {
-                  const isSelected = selectedEntities.has(entity.name);
-                  const readCount = entity.accesses.filter(a => 
+               <TableBody>
+                {visibleDatasets.map((dataset) => {
+                  const isSelected = selectedEntities.has(dataset.name);
+                  const readCount = dataset.accesses.filter(a => 
                     a.accessType.toLowerCase().includes('read')
                   ).length;
-                  const modifyCount = entity.accesses.filter(a => 
+                  const modifyCount = dataset.accesses.filter(a => 
                     !a.accessType.toLowerCase().includes('read')
                   ).length;
                   
                   return (
-                    <TableRow key={entity.name}>
+                    <TableRow key={dataset.name}>
                       <TableCell>
                         <Checkbox
                           checked={isSelected}
-                          onCheckedChange={() => toggleEntitySelection(entity.name)}
+                          onCheckedChange={() => toggleEntitySelection(dataset.name)}
                         />
                       </TableCell>
                       <TableCell className="text-xs">
-                        {perspective === 'user-journey' ? 'User' : 'Dataset'}
+                        Dataset
                       </TableCell>
                       <TableCell className="text-xs font-mono">
-                        <div className="max-w-32 truncate" title={entity.name}>
-                          {entity.name}
+                        <div className="max-w-32 truncate" title={dataset.name}>
+                          {dataset.name}
                         </div>
                         <div className="text-xs text-muted-foreground mt-1">
                           {readCount}R / {modifyCount}M
@@ -257,7 +265,7 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
           </div>
           
           {/* Scroll controls for table */}
-          {uniqueEntities.length > maxNodesVisible && (
+          {uniqueDatasets.length > maxNodesVisible && (
             <div className="flex justify-center gap-2 mt-2">
               <Button
                 variant="outline"
@@ -281,32 +289,19 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
           )}
         </div>
 
-        {/* Connection Points */}
-        <div className="flex flex-col justify-start pt-16 gap-8 px-4">
-          {Array.from(selectedEntities).map((entityName) => {
-            const entityIndex = visibleEntities.findIndex(e => e.name === entityName);
-            if (entityIndex === -1) return null;
-            
-            const entity = visibleEntities[entityIndex];
-            const readCount = entity.accesses.filter(a => 
-              a.accessType.toLowerCase().includes('read')
-            ).length;
-            const modifyCount = entity.accesses.filter(a => 
-              !a.accessType.toLowerCase().includes('read')
-            ).length;
-            
-            return (
-              <div key={entityName} className="flex items-center gap-2">
-                <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white text-xs font-medium shadow-lg">
-                  {entityName.substring(0, 2).toUpperCase()}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  <div className="font-medium">{entityName}</div>
-                  <div>{readCount}R / {modifyCount}M</div>
-                </div>
+        {/* Dynamic User Nodes */}
+        <div className="flex flex-col justify-start pt-16 gap-4 px-4 w-40">
+          {dynamicUserNodes.map((user, index) => (
+            <div key={user.name} className="flex items-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-secondary-foreground text-xs font-medium shadow-lg">
+                {user.name.substring(0, 2).toUpperCase()}
               </div>
-            );
-          })}
+              <div className="text-xs text-muted-foreground">
+                <div className="font-medium truncate w-20" title={user.name}>{user.name}</div>
+                <div>{user.readCount}R / {user.modifyCount}M</div>
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Visualization Area */}
@@ -326,55 +321,37 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                     {bucket.label}
                   </div>
                   
-                  {/* Access count badge */}
-                  <div className="flex justify-center p-4">
-                    <div className={`px-4 py-2 rounded-full text-sm font-medium ${
-                      accesses.length > 0 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                    }`}>
-                      {accesses.length} access{accesses.length !== 1 ? 'es' : ''}
-                    </div>
-                  </div>
-                  
-                  {/* Access details */}
-                  <div className="p-4 space-y-3">
-                    {accesses.slice(0, 12).map((access, accessIndex) => {
-                      const isRead = access.accessType.toLowerCase().includes('read');
-                      const displayName = perspective === 'user-journey' 
-                        ? access.datasetName
-                        : access.userName;
-                      
+                  {/* R/M Circles for each user */}
+                  <div className="p-4 space-y-4" style={{ paddingTop: '110px' }}>
+                    {dynamicUserNodes.map((user, userIndex) => {
+                      const userAccesses = bucket.accesses.filter(a => a.userName === user.name);
+                      if (userAccesses.length === 0) return null;
+
+                      const readCount = userAccesses.filter(a => a.accessType.toLowerCase().includes('read')).length;
+                      const modifyCount = userAccesses.filter(a => !a.accessType.toLowerCase().includes('read')).length;
+
                       return (
-                        <div 
-                          key={`${access.id}-${accessIndex}`}
-                          className={`p-3 rounded-lg border-2 ${
-                            isRead ? 'bg-chart-2/10 border-chart-2' : 'bg-chart-1/10 border-chart-1'
-                          }`}
-                          data-access-target={`${access.id}-${index}-${accessIndex}`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold ${
-                              isRead ? 'bg-chart-2' : 'bg-chart-1'
-                            }`}>
-                              {isRead ? 'R' : 'M'}
-                            </div>
-                            <div className="flex-1">
-                              <div className="text-sm font-medium truncate" title={displayName}>
-                                {displayName.length > 15 ? displayName.substring(0, 15) + '...' : displayName}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {access.accessType}
+                        <div key={`circles-${user.name}-${index}`} className="space-y-2">
+                          {/* Read circle */}
+                          {readCount > 0 && (
+                            <div className="flex justify-center">
+                              <div className="w-12 h-12 rounded-full bg-chart-2 flex items-center justify-center text-white font-bold shadow-lg">
+                                R{readCount > 1 ? readCount : ''}
                               </div>
                             </div>
-                          </div>
+                          )}
+                          
+                          {/* Modify circle */}
+                          {modifyCount > 0 && (
+                            <div className="flex justify-center">
+                              <div className="w-12 h-12 rounded-full bg-chart-1 flex items-center justify-center text-white font-bold shadow-lg">
+                                M{modifyCount > 1 ? modifyCount : ''}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
-                    
-                    {accesses.length > 12 && (
-                      <div className="text-center text-sm text-muted-foreground p-2 border border-dashed border-muted-foreground/50 rounded">
-                        +{accesses.length - 12} more accesses
-                      </div>
-                    )}
                   </div>
                 </div>
               );
@@ -391,7 +368,7 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
           >
             <defs>
               <marker
-                id="blackArrow"
+                id="primaryArrow"
                 markerWidth={10}
                 markerHeight={10}
                 refX={9}
@@ -401,59 +378,119 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
               >
                 <polygon
                   points="0 0, 10 3, 0 6"
-                  fill="black"
+                  fill="hsl(var(--primary))"
+                />
+              </marker>
+              <marker
+                id="readArrow"
+                markerWidth={10}
+                markerHeight={10}
+                refX={9}
+                refY={3}
+                orient="auto"
+                markerUnits="strokeWidth"
+              >
+                <polygon
+                  points="0 0, 10 3, 0 6"
+                  fill="hsl(var(--chart-2))"
+                />
+              </marker>
+              <marker
+                id="modifyArrow"
+                markerWidth={10}
+                markerHeight={10}
+                refX={9}
+                refY={3}
+                orient="auto"
+                markerUnits="strokeWidth"
+              >
+                <polygon
+                  points="0 0, 10 3, 0 6"
+                  fill="hsl(var(--chart-1))"
                 />
               </marker>
             </defs>
 
-            {/* Draw black connecting arrows */}
-            {Array.from(selectedEntities).map((entityName, entityDisplayIndex) => {
-              const entity = uniqueEntities.find(e => e.name === entityName);
-              if (!entity) return null;
+            {/* Draw arrows from datasets to user nodes */}
+            {Array.from(selectedEntities).map((datasetName, datasetIndex) => {
+              return dynamicUserNodes.map((user, userIndex) => {
+                // Check if this user has accesses to this dataset
+                const hasAccess = user.accesses.some(access => access.datasetName === datasetName);
+                if (!hasAccess) return null;
 
-              return timeBuckets.map((bucket, bucketIndex) => {
-                const entityAccesses = bucket.accesses.filter(a => 
-                  perspective === 'user-journey' 
-                    ? a.userName === entityName
-                    : a.datasetName === entityName
+                // Dataset to user arrow
+                const datasetY = 110 + (datasetIndex * 56);
+                const userY = 110 + (userIndex * 48);
+                const datasetToUserPath = `M 320 ${datasetY} L 380 ${userY}`;
+
+                return (
+                  <g key={`dataset-to-user-${datasetName}-${user.name}`}>
+                    <path
+                      d={datasetToUserPath}
+                      fill="none"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={2}
+                      opacity={0.8}
+                      markerEnd="url(#primaryArrow)"
+                    />
+                  </g>
                 );
-                if (entityAccesses.length === 0) return null;
+              });
+            })}
 
-                return entityAccesses.slice(0, 12).map((access, accessIndex) => {
-                  const isRead = access.accessType.toLowerCase().includes('read');
-                  
-                  // Calculate positions - start from the actual black circle connection point
-                  const connectionPointX = 340; // Move way left closer to the table
-                  const connectionPointY = 110 + (entityDisplayIndex * 56); // Exact vertical position
-                  
-                  // Target position in the time bucket
-                  const bucketStartX = 150; // Start of time buckets area
-                  const bucketWidth = 200; // Width of each time bucket
-                  const targetX = bucketStartX + (bucketIndex * (bucketWidth + 16)) + (bucketWidth / 2);
-                  const targetY = 180 + (accessIndex * 60);
-                  
-                  // Create path from black circle edge to access item
-                  const controlX1 = connectionPointX + 80;
-                  const controlY1 = connectionPointY - 30;
-                  const controlX2 = targetX - 80;
-                  const controlY2 = targetY - 30;
-                  
-                  const path = `M ${connectionPointX + 24} ${connectionPointY} C ${controlX1} ${controlY1} ${controlX2} ${controlY2} ${targetX - 15} ${targetY}`;
-                  
-                  return (
-                    <g key={`connection-${entityName}-${bucketIndex}-${accessIndex}`}>
+            {/* Draw arrows from user nodes to time window circles */}
+            {dynamicUserNodes.map((user, userIndex) => {
+              return timeBuckets.map((bucket, bucketIndex) => {
+                const userAccesses = bucket.accesses.filter(a => a.userName === user.name);
+                if (userAccesses.length === 0) return null;
+
+                // Group accesses by type and count
+                const readCount = userAccesses.filter(a => a.accessType.toLowerCase().includes('read')).length;
+                const modifyCount = userAccesses.filter(a => !a.accessType.toLowerCase().includes('read')).length;
+
+                const userY = 110 + (userIndex * 48);
+                const bucketCenterX = 540 + (bucketIndex * 150);
+                
+                const paths = [];
+                
+                // Read access arrow if any
+                if (readCount > 0) {
+                  const readCircleY = 160 + (userIndex * 80);
+                  const userToReadPath = `M 420 ${userY} C 460 ${userY} 500 ${readCircleY} ${bucketCenterX - 20} ${readCircleY}`;
+                  paths.push(
+                    <g key={`user-to-read-${user.name}-${bucketIndex}`}>
                       <path
-                        d={path}
+                        d={userToReadPath}
                         fill="none"
-                        stroke="black"
-                        strokeWidth={3}
-                        opacity={0.9}
-                        markerEnd="url(#blackArrow)"
-                        strokeDasharray={isRead ? "none" : "8,4"}
+                        stroke="hsl(var(--chart-2))"
+                        strokeWidth={2}
+                        opacity={0.8}
+                        markerEnd="url(#readArrow)"
                       />
                     </g>
                   );
-                });
+                }
+
+                // Modify access arrow if any
+                if (modifyCount > 0) {
+                  const modifyCircleY = 200 + (userIndex * 80);
+                  const userToModifyPath = `M 420 ${userY} C 460 ${userY} 500 ${modifyCircleY} ${bucketCenterX - 20} ${modifyCircleY}`;
+                  paths.push(
+                    <g key={`user-to-modify-${user.name}-${bucketIndex}`}>
+                      <path
+                        d={userToModifyPath}
+                        fill="none"
+                        stroke="hsl(var(--chart-1))"
+                        strokeWidth={2}
+                        opacity={0.8}
+                        strokeDasharray="8,4"
+                        markerEnd="url(#modifyArrow)"
+                      />
+                    </g>
+                  );
+                }
+
+                return paths;
               });
             })}
           </svg>
@@ -501,9 +538,9 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
         </div>
       )}
       
-      {uniqueEntities.length > maxNodesVisible && (
+      {uniqueDatasets.length > maxNodesVisible && (
         <div className="text-xs text-muted-foreground mt-2 text-center">
-          Showing {scrollOffset + 1}-{Math.min(scrollOffset + maxNodesVisible, uniqueEntities.length)} of {uniqueEntities.length} {entityTypeLabel.toLowerCase()}s
+          Showing {scrollOffset + 1}-{Math.min(scrollOffset + maxNodesVisible, uniqueDatasets.length)} of {uniqueDatasets.length} datasets
         </div>
       )}
     </div>
