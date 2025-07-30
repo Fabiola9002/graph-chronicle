@@ -63,6 +63,7 @@ const [filters, setFilters] = useState({
     timeWindow: 'day' as 'hour' | 'day' | 'week' | 'month'
   });
   const [treeHierarchy, setTreeHierarchy] = useState<'dataset-orgs-users' | 'user-platform-dataset'>('dataset-orgs-users');
+  const [journeyPerspective, setJourneyPerspective] = useState<'user-journey' | 'dataset-journey'>('user-journey');
 
   // Mock data generation
   const generateMockData = (): DatasetAccess[] => {
@@ -318,6 +319,21 @@ const [filters, setFilters] = useState({
                   </div>
                 )}
                 
+                {selectedVisualization === "journey" && (
+                  <div className="flex items-center gap-4 mb-4">
+                    <span className="text-sm text-muted-foreground">Perspective:</span>
+                    <Select value={journeyPerspective} onValueChange={(v: any) => setJourneyPerspective(v)}>
+                      <SelectTrigger className="w-48">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="user-journey">User Journey</SelectItem>
+                        <SelectItem value="dataset-journey">Dataset Journey</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                
                 <div className="flex items-center gap-4">
                   <span className="text-sm text-muted-foreground">Timeline:</span>
                   <div className="flex-1">
@@ -362,7 +378,7 @@ const [filters, setFilters] = useState({
                   />
                 )}
                 {selectedVisualization === "journey" && (
-                  <UserJourneyFlow data={filteredData} />
+                  <UserJourneyFlow data={filteredData} perspective={journeyPerspective} />
                 )}
               </CardContent>
             </Card>
