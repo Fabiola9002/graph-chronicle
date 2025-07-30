@@ -92,12 +92,11 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
     }
   }, [uniqueDatasets, selectedEntities.size]);
 
-  // Generate time buckets with relevant names
+  // Generate time buckets with consistent names
   const timeBuckets = useMemo(() => {
     const buckets: TimeBucket[] = [];
     const now = new Date();
     const baseHour = now.getHours();
-    const bucketNames = ['Current Activity', 'Recent Trends', 'Historical View'];
     
     for (let i = 0; i < 3; i++) {
       const hour = (baseHour + currentHour + i) % 24;
@@ -121,7 +120,7 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
       
       buckets.push({
         hour,
-        label: bucketNames[i],
+        label: `Period ${i + 1}`,
         accesses: relevantAccesses
       });
     }
