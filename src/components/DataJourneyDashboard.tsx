@@ -13,7 +13,7 @@ import { UserDatasetFlow } from "./visualizations/UserDatasetFlow";
 import { TimelineChart } from "./visualizations/TimelineChart";
 import { SankeyDiagram } from "./visualizations/SankeyDiagram";
 import TimelineCollapsibleTree from "./visualizations/TimelineCollapsibleTree";
-import { UserJourneyFlow } from "./visualizations/UserJourneyFlow";
+import { UserJourneyFlowNew } from "./visualizations/UserJourneyFlowNew";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { MetricCards } from "./MetricCards";
 import { SearchPanel } from "./SearchPanel";
@@ -313,7 +313,7 @@ const [filters, setFilters] = useState({
             </CardHeader>
             
             <CardContent className="h-[800px]">
-              <UserJourneyFlow data={filteredData} perspective={journeyPerspective} />
+              <UserJourneyFlowNew data={filteredData} perspective={journeyPerspective} />
             </CardContent>
           </Card>
         </div>
