@@ -6,22 +6,18 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AccessHeatmap } from "./visualizations/AccessHeatmap";
 import { UserDatasetFlow } from "./visualizations/UserDatasetFlow";
 import { TimelineChart } from "./visualizations/TimelineChart";
 import { SankeyDiagram } from "./visualizations/SankeyDiagram";
 import TimelineCollapsibleTree from "./visualizations/TimelineCollapsibleTree";
-import { UserJourneyFlowNew } from "./visualizations/UserJourneyFlowNew";
+import { UserJourneyFlow } from "./visualizations/UserJourneyFlow";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { MetricCards } from "./MetricCards";
 import { SearchPanel } from "./SearchPanel";
 import { JourneyInsights } from "./JourneyInsights";
-import { PlayCircle, Pause, SkipForward, SkipBack, Settings, Database, Users, Activity, CalendarIcon } from "lucide-react";
+import { PlayCircle, Pause, SkipForward, SkipBack, Settings, Database, Users, Activity } from "lucide-react";
 import { toast } from "sonner";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 
 // Mock data types
 export interface DatasetAccess {
@@ -58,17 +54,13 @@ const DataJourneyDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [selectedDataset, setSelectedDataset] = useState<string | null>(null);
-  const [bucketMultiplier, setBucketMultiplier] = useState(3);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [currentTime, setCurrentTime] = useState(0);
-  const [startDate, setStartDate] = useState<Date>();
-  const [endDate, setEndDate] = useState<Date>();
-  const [userIdFilter, setUserIdFilter] = useState("");
-  const [datasetIdFilter, setDatasetIdFilter] = useState("");
 const [filters, setFilters] = useState({
     departments: [] as string[],
     datasetTypes: [] as string[],
     accessTypes: [] as string[],
-    timeWindow: 'day' as 'second' | 'minute' | 'hour' | 'day' | 'week' | 'year'
+    timeWindow: 'day' as 'hour' | 'day' | 'week' | 'month'
   });
   const [treeHierarchy, setTreeHierarchy] = useState<'dataset-orgs-users' | 'user-platform-dataset'>('dataset-orgs-users');
   const [journeyPerspective, setJourneyPerspective] = useState<'user-journey' | 'dataset-journey'>('user-journey');
@@ -105,31 +97,45 @@ const [filters, setFilters] = useState({
     setAccessData(generateMockData());
   }, []);
 
-  // Filter data based on current filters and date range
+  // Filter data based on current filters and time range
   const filteredData = useMemo(() => {
     return accessData.filter(access => {
-      const dateMatch = (!startDate || access.timestamp >= startDate) && 
-                       (!endDate || access.timestamp <= endDate);
+      const timeMatch = currentTime === 0 || access.timestamp.getTime() <= Date.now() - (100 - currentTime) * 24 * 60 * 60 * 1000;
       const searchMatch = !searchQuery || 
         access.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         access.datasetName.toLowerCase().includes(searchQuery.toLowerCase());
-      const userMatch = !userIdFilter || access.userId.includes(userIdFilter);
-      const datasetMatch = !datasetIdFilter || access.datasetId.includes(datasetIdFilter);
       
-      return dateMatch && searchMatch && userMatch && datasetMatch;
+      return timeMatch && searchMatch;
     });
-  }, [accessData, startDate, endDate, searchQuery, userIdFilter, datasetIdFilter]);
+  }, [accessData, currentTime, searchQuery]);
 
-  // Generate bucket labels based on time unit and multiplier
-  const bucketLabels = useMemo(() => {
-    const labels = [];
-    for (let i = 1; i <= bucketMultiplier; i++) {
-      const value = i === 1 ? 1 : i;
-      labels.push(`${value} ${filters.timeWindow}${value > 1 ? 's' : ''}`);
-    }
-    return labels;
-  }, [bucketMultiplier, filters.timeWindow]);
+  // Playback control
+  useEffect(() => {
+    if (!isPlaying) return;
+    
+    const interval = setInterval(() => {
+      setCurrentTime(prev => {
+        if (prev >= 100) {
+          setIsPlaying(false);
+          return 100;
+        }
+        return prev + (playbackSpeed * 0.5);
+      });
+    }, 100);
 
+    return () => clearInterval(interval);
+  }, [isPlaying, playbackSpeed]);
+
+  const handlePlayPause = () => {
+    setIsPlaying(!isPlaying);
+    toast(isPlaying ? "Playback paused" : "Playback started");
+  };
+
+  const handleReset = () => {
+    setCurrentTime(0);
+    setIsPlaying(false);
+    toast("Timeline reset to beginning");
+  };
 
   const handleJourneyInsight = async (selectedPath: string[]) => {
     setLoading(true);
@@ -172,150 +178,264 @@ const [filters, setFilters] = useState({
   return (
     <div className="min-h-screen bg-gradient-subtle p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Main Content - Full Width Journey Visualization */}
-        <div className="grid grid-cols-1">
-          <Card className="shadow-elegant">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5 text-accent" />
-                  Data Access Visualization
-                </CardTitle>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+              Data Journey Analytics
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Explore user access patterns and discover data flow insights
+            </p>
+          </div>
+          
+          {/* Playback Controls */}
+          <div className="flex items-center gap-4 bg-card p-4 rounded-lg shadow-elegant">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleReset}
+              className="h-8"
+            >
+              <SkipBack className="h-4 w-4" />
+            </Button>
+            
+            <Button
+              variant={isPlaying ? "secondary" : "default"}
+              size="sm"
+              onClick={handlePlayPause}
+              className="h-8 w-16"
+            >
+              {isPlaying ? <Pause className="h-4 w-4" /> : <PlayCircle className="h-4 w-4" />}
+            </Button>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Speed:</span>
+              <Select value={playbackSpeed.toString()} onValueChange={(v) => setPlaybackSpeed(Number(v))}>
+                <SelectTrigger className="w-20 h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0.5">0.5x</SelectItem>
+                  <SelectItem value="1">1x</SelectItem>
+                  <SelectItem value="2">2x</SelectItem>
+                  <SelectItem value="5">5x</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        {/* Metrics Overview */}
+        <MetricCards data={filteredData} />
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-12 gap-6">
+
+          {/* Center Panel - Visualizations */}
+          <div className="col-span-10">
+            <Card className="shadow-elegant">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Activity className="h-5 w-5 text-accent" />
+                    Data Access Visualization
+                  </CardTitle>
+                  
+                  <Carousel className="w-full max-w-md">
+                    <CarouselContent>
+                      <CarouselItem>
+                        <Button 
+                          variant={selectedVisualization === "heatmap" ? "default" : "outline"}
+                          onClick={() => setSelectedVisualization("heatmap")}
+                          size="sm"
+                        >
+                          Heatmap
+                        </Button>
+                      </CarouselItem>
+                      <CarouselItem>
+                        <Button 
+                          variant={selectedVisualization === "flow" ? "default" : "outline"}
+                          onClick={() => setSelectedVisualization("flow")}
+                          size="sm"
+                        >
+                          Flow
+                        </Button>
+                      </CarouselItem>
+                      <CarouselItem>
+                        <Button 
+                          variant={selectedVisualization === "timeline" ? "default" : "outline"}
+                          onClick={() => setSelectedVisualization("timeline")}
+                          size="sm"
+                        >
+                          Timeline
+                        </Button>
+                      </CarouselItem>
+                      <CarouselItem>
+                        <Button 
+                          variant={selectedVisualization === "sankey" ? "default" : "outline"}
+                          onClick={() => setSelectedVisualization("sankey")}
+                          size="sm"
+                        >
+                          Sankey
+                        </Button>
+                      </CarouselItem>
+                       <CarouselItem>
+                         <Button 
+                           variant={selectedVisualization === "tree" ? "default" : "outline"}
+                           onClick={() => setSelectedVisualization("tree")}
+                           size="sm"
+                         >
+                           Tree
+                         </Button>
+                       </CarouselItem>
+                       <CarouselItem>
+                         <Button 
+                           variant={selectedVisualization === "journey" ? "default" : "outline"}
+                           onClick={() => setSelectedVisualization("journey")}
+                           size="sm"
+                         >
+                           Journey
+                         </Button>
+                       </CarouselItem>
+                    </CarouselContent>
+                    <CarouselPrevious />
+                    <CarouselNext />
+                  </Carousel>
+                </div>
+                
+                {selectedVisualization === "tree" && (
+                  <div className="flex items-center gap-4 mb-4">
+                    <span className="text-sm text-muted-foreground">Hierarchy:</span>
+                    <Select value={treeHierarchy} onValueChange={(v: any) => setTreeHierarchy(v)}>
+                      <SelectTrigger className="w-48">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="dataset-orgs-users">Dataset → Orgs → Users</SelectItem>
+                        <SelectItem value="user-platform-dataset">User → Platform → Dataset</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                
+                {selectedVisualization === "journey" && (
+                  <div className="flex items-center gap-4 mb-4">
+                    <span className="text-sm text-muted-foreground">Perspective:</span>
+                    <Select value={journeyPerspective} onValueChange={(v: any) => setJourneyPerspective(v)}>
+                      <SelectTrigger className="w-48">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="user-journey">User Journey</SelectItem>
+                        <SelectItem value="dataset-journey">Dataset Journey</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 
                 <div className="flex items-center gap-4">
-                  <span className="text-sm text-muted-foreground">Perspective:</span>
-                  <Select value={journeyPerspective} onValueChange={(v: any) => setJourneyPerspective(v)}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="user-journey">User Journey</SelectItem>
-                      <SelectItem value="dataset-journey">Dataset Journey</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">Timeline:</span>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-[140px] justify-start text-left font-normal",
-                          !startDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {startDate ? format(startDate, "PP") : "Start date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={startDate}
-                        onSelect={setStartDate}
-                        initialFocus
-                        className={cn("p-3 pointer-events-auto")}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-[140px] justify-start text-left font-normal",
-                          !endDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {endDate ? format(endDate, "PP") : "End date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={endDate}
-                        onSelect={setEndDate}
-                        initialFocus
-                        className={cn("p-3 pointer-events-auto")}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Time Unit:</span>
-                  <Select value={filters.timeWindow} onValueChange={(v: any) => setFilters(prev => ({ ...prev, timeWindow: v }))}>
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="second">Seconds</SelectItem>
-                      <SelectItem value="minute">Minutes</SelectItem>
-                      <SelectItem value="hour">Hours</SelectItem>
-                      <SelectItem value="day">Days</SelectItem>
-                      <SelectItem value="week">Weeks</SelectItem>
-                      <SelectItem value="year">Years</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Buckets:</span>
-                  <Select value={bucketMultiplier.toString()} onValueChange={(v) => setBucketMultiplier(Number(v))}>
-                    <SelectTrigger className="w-20">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 10 }, (_, i) => i + 1).map(num => (
-                        <SelectItem key={num} value={num.toString()}>{num}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {journeyPerspective === 'user-journey' ? (
-                    <Input
-                      placeholder="User ID"
-                      value={userIdFilter}
-                      onChange={(e) => setUserIdFilter(e.target.value)}
-                      className="w-32"
+                  <div className="flex-1">
+                    <Slider
+                      value={[currentTime]}
+                      onValueChange={([value]) => setCurrentTime(value)}
+                      max={100}
+                      step={1}
+                      className="w-full"
                     />
-                  ) : (
-                    <Input
-                      placeholder="Dataset ID"
-                      value={datasetIdFilter}
-                      onChange={(e) => setDatasetIdFilter(e.target.value)}
-                      className="w-32"
-                    />
-                  )}
-                </div>
-              </div>
-              
-              {bucketLabels.length > 0 && (
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="text-sm text-muted-foreground">Current buckets:</span>
-                  <div className="flex gap-1">
-                    {bucketLabels.map((label, i) => (
-                      <Badge key={i} variant="outline" className="text-xs">
-                        {label}
-                      </Badge>
-                    ))}
                   </div>
+                  <span className="text-sm text-muted-foreground">
+                    {Math.round(currentTime)}%
+                  </span>
                 </div>
-              )}
-            </CardHeader>
-            
-            <CardContent className="h-[800px]">
-              <UserJourneyFlowNew data={filteredData} perspective={journeyPerspective} />
-            </CardContent>
-          </Card>
+              </CardHeader>
+              
+              <CardContent className="h-[600px]">
+                {selectedVisualization === "heatmap" && (
+                  <AccessHeatmap data={filteredData} />
+                )}
+                {selectedVisualization === "flow" && (
+                  <UserDatasetFlow data={filteredData} />
+                )}
+                {selectedVisualization === "timeline" && (
+                  <TimelineChart data={filteredData} />
+                )}
+                {selectedVisualization === "sankey" && (
+                  <SankeyDiagram data={filteredData} />
+                )}
+                {selectedVisualization === "tree" && (
+                  <TimelineCollapsibleTree 
+                    data={filteredData.map(d => ({
+                      user: d.userName,
+                      dataset: d.datasetName,
+                      accessType: d.accessType === 'execute' ? 'read' : d.accessType,
+                      timestamp: d.timestamp,
+                      department: d.department,
+                      duration: d.duration
+                    }))}
+                    hierarchy={treeHierarchy}
+                  />
+                )}
+                {selectedVisualization === "journey" && (
+                  <UserJourneyFlow data={filteredData} perspective={journeyPerspective} />
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Panel - Details */}
+          <div className="col-span-2 space-y-4">
+            {selectedUser && (
+              <Card className="shadow-elegant">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-info" />
+                    User Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="text-sm">
+                      <span className="font-medium">Name:</span> {selectedUser}
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {['Data Scientist', 'Analytics'].map(tag => (
+                        <Badge key={tag} variant="secondary" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {selectedDataset && (
+              <Card className="shadow-elegant">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Database className="h-4 w-4 text-success" />
+                    Dataset Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="text-sm">
+                      <span className="font-medium">Name:</span> {selectedDataset}
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {['sensitive', 'production'].map(tag => (
+                        <Badge key={tag} variant="outline" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
       </div>
     </div>
