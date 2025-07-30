@@ -178,18 +178,8 @@ const [filters, setFilters] = useState({
   return (
     <div className="min-h-screen bg-gradient-subtle p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              Data Journey Analytics
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Explore user access patterns and discover data flow insights
-            </p>
-          </div>
-          
-          {/* Playback Controls */}
+        {/* Playback Controls */}
+        <div className="flex items-center justify-end">
           <div className="flex items-center gap-4 bg-card p-4 rounded-lg shadow-elegant">
             <Button
               variant="outline"
@@ -231,7 +221,7 @@ const [filters, setFilters] = useState({
         <div className="grid grid-cols-12 gap-6">
 
           {/* Center Panel - Visualizations */}
-          <div className="col-span-10">
+          <div className="col-span-12">
             <Card className="shadow-elegant">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -305,7 +295,7 @@ const [filters, setFilters] = useState({
                 </div>
               </CardHeader>
               
-              <CardContent className="h-[600px]">
+              <CardContent className="h-[700px]">
                 {selectedVisualization === "flow" && (
                   <UserDatasetFlow data={filteredData} />
                 )}
@@ -314,59 +304,6 @@ const [filters, setFilters] = useState({
                 )}
               </CardContent>
             </Card>
-          </div>
-
-          {/* Right Panel - Details */}
-          <div className="col-span-2 space-y-4">
-            {selectedUser && (
-              <Card className="shadow-elegant">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-info" />
-                    User Details
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="text-sm">
-                      <span className="font-medium">Name:</span> {selectedUser}
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {['Data Scientist', 'Analytics'].map(tag => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {selectedDataset && (
-              <Card className="shadow-elegant">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Database className="h-4 w-4 text-success" />
-                    Dataset Details
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="text-sm">
-                      <span className="font-medium">Name:</span> {selectedDataset}
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {['sensitive', 'production'].map(tag => (
-                        <Badge key={tag} variant="outline" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
       </div>
