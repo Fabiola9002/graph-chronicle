@@ -296,18 +296,13 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
             ).length;
             
             return (
-              <div key={entityName} className="flex items-center gap-3">
-                <div className="w-16 h-16 rounded-full bg-black text-white flex flex-col items-center justify-center text-xs font-bold shadow-lg relative">
-                  <div className="text-sm">
-                    {entityName.split('.').map(part => part.charAt(0).toUpperCase()).join('')}
-                  </div>
-                  <div className="text-[10px] opacity-80 leading-tight">
-                    {readCount}R / {modifyCount}M
-                  </div>
+              <div key={entityName} className="flex items-center gap-2">
+                <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white text-xs font-medium shadow-lg">
+                  {entityName.substring(0, 2).toUpperCase()}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   <div className="font-medium">{entityName}</div>
-                  <div>{readCount + modifyCount} total accesses</div>
+                  <div>{readCount}R / {modifyCount}M</div>
                 </div>
               </div>
             );
@@ -428,22 +423,22 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                   const isRead = access.accessType.toLowerCase().includes('read');
                   
                   // Calculate positions - start from the actual black circle connection point
-                  const connectionPointX = 480; // Position after table + connection points section
-                  const connectionPointY = 110 + (entityDisplayIndex * 64); // Vertical position matching the circles
+                  const connectionPointX = 414; // Exact position of circle center (table width 320px + gap 24px + circle center 48px + padding 22px)
+                  const connectionPointY = 110 + (entityDisplayIndex * 56); // Exact vertical position (pt-16 + gap-8 spacing)
                   
-                  // Target position in the time bucket - more accurate positioning
-                  const bucketStartX = 520; // Start of time buckets area
-                  const bucketWidth = 300; // Width of each time bucket
-                  const targetX = bucketStartX + (bucketIndex * bucketWidth) + (bucketWidth / 2); // Center of bucket
-                  const targetY = 180 + (accessIndex * 68); // Position of each access item
+                  // Target position in the time bucket
+                  const bucketStartX = 500; // Start of time buckets area
+                  const bucketWidth = 250; // Actual width of each time bucket
+                  const targetX = bucketStartX + (bucketIndex * (bucketWidth + 16)) + (bucketWidth / 2); // Center of bucket with gap
+                  const targetY = 180 + (accessIndex * 60); // Position of each access item
                   
-                  // Create curved path from connection circle to access item
-                  const controlX1 = connectionPointX + 100;
-                  const controlY1 = connectionPointY - 40;
-                  const controlX2 = targetX - 120;
-                  const controlY2 = targetY - 40;
+                  // Create curved path from connection circle edge to access item
+                  const controlX1 = connectionPointX + 80;
+                  const controlY1 = connectionPointY - 30;
+                  const controlX2 = targetX - 80;
+                  const controlY2 = targetY - 30;
                   
-                  const path = `M ${connectionPointX + 32} ${connectionPointY} C ${controlX1} ${controlY1} ${controlX2} ${controlY2} ${targetX - 20} ${targetY}`;
+                  const path = `M ${connectionPointX + 24} ${connectionPointY} C ${controlX1} ${controlY1} ${controlX2} ${controlY2} ${targetX - 15} ${targetY}`;
                   
                   return (
                     <g key={`connection-${entityName}-${bucketIndex}-${accessIndex}`}>
