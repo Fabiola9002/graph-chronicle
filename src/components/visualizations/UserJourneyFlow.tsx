@@ -216,7 +216,7 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                   <TableHead className="w-16">Select</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>
-                    {perspective === 'user-journey' ? 'Dataset FQN' : 'User ID'}
+                    {perspective === 'user-journey' ? 'Dataset ID' : 'User ID'}
                   </TableHead>
                 </TableRow>
               </TableHeader>
