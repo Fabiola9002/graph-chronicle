@@ -203,19 +203,32 @@ const [filters, setFilters] = useState({
               </div>
               
               <div className="flex items-center gap-4">
-                <span className="text-sm text-muted-foreground">Timeline:</span>
-                <div className="flex-1">
-                  <Slider
-                    value={[currentTime]}
-                    onValueChange={([value]) => setCurrentTime(value)}
-                    max={100}
-                    step={1}
-                    className="w-full"
-                  />
-                </div>
-                <span className="text-sm text-muted-foreground">
-                  {Math.round(currentTime)}%
-                </span>
+                <span className="text-sm text-muted-foreground">Time Buckets:</span>
+                <Select value={filters.timeWindow} onValueChange={(v: any) => setFilters(prev => ({ ...prev, timeWindow: v }))}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="second">Seconds</SelectItem>
+                    <SelectItem value="minute">Minutes</SelectItem>
+                    <SelectItem value="hour">Hours</SelectItem>
+                    <SelectItem value="day">Days</SelectItem>
+                    <SelectItem value="week">Weeks</SelectItem>
+                    <SelectItem value="year">Years</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <span className="text-sm text-muted-foreground">Multiplier:</span>
+                <Select value={playbackSpeed.toString()} onValueChange={(v) => setPlaybackSpeed(Number(v))}>
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">n</SelectItem>
+                    <SelectItem value="2">n+1</SelectItem>
+                    <SelectItem value="3">n+2</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardHeader>
             
