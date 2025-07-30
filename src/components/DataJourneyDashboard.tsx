@@ -280,18 +280,21 @@ const [filters, setFilters] = useState({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Input
-                    placeholder="User ID"
-                    value={userIdFilter}
-                    onChange={(e) => setUserIdFilter(e.target.value)}
-                    className="w-32"
-                  />
-                  <Input
-                    placeholder="Dataset ID"
-                    value={datasetIdFilter}
-                    onChange={(e) => setDatasetIdFilter(e.target.value)}
-                    className="w-32"
-                  />
+                  {journeyPerspective === 'user-journey' ? (
+                    <Input
+                      placeholder="User ID"
+                      value={userIdFilter}
+                      onChange={(e) => setUserIdFilter(e.target.value)}
+                      className="w-32"
+                    />
+                  ) : (
+                    <Input
+                      placeholder="Dataset ID"
+                      value={datasetIdFilter}
+                      onChange={(e) => setDatasetIdFilter(e.target.value)}
+                      className="w-32"
+                    />
+                  )}
                 </div>
               </div>
               
