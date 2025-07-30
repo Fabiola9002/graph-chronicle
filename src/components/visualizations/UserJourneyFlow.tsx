@@ -31,28 +31,31 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
   // Get unique entities for the left side nodes (users or datasets based on perspective)
   const uniqueEntities = useMemo(() => {
     if (perspective === 'user-journey') {
-      const userMap = new Map<string, { 
+      // For user journey, show datasets in table with users accessing them
+      const datasetMap = new Map<string, { 
         name: string; 
-        datasets: Set<string>; 
+        id: string;
+        users: Set<string>; 
         accesses: DatasetAccess[] 
       }>();
       
       data.forEach(access => {
-        if (!userMap.has(access.userName)) {
-          userMap.set(access.userName, {
-            name: access.userName,
-            datasets: new Set(),
+        if (!datasetMap.has(access.datasetName)) {
+          datasetMap.set(access.datasetName, {
+            name: access.datasetName,
+            id: access.datasetId,
+            users: new Set(),
             accesses: []
           });
         }
-        const user = userMap.get(access.userName)!;
-        user.datasets.add(access.datasetName);
-        user.accesses.push(access);
+        const dataset = datasetMap.get(access.datasetName)!;
+        dataset.users.add(access.userName);
+        dataset.accesses.push(access);
       });
       
-      return Array.from(userMap.values());
+      return Array.from(datasetMap.values());
     } else {
-      // Dataset journey perspective
+      // Dataset journey perspective - keep original logic
       const datasetMap = new Map<string, { 
         name: string; 
         users: Set<string>; 
@@ -104,7 +107,7 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
         const isInTimeRange = accessTime >= bucketStart && accessTime < bucketEnd;
         
         const isSelectedEntity = perspective === 'user-journey' 
-          ? selectedEntities.has(access.userName)
+          ? selectedEntities.has(access.datasetName)
           : selectedEntities.has(access.datasetName);
         
         return isInTimeRange && isSelectedEntity;
@@ -164,7 +167,7 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
   const canScrollUp = scrollOffset > 0;
   const canScrollDown = scrollOffset < uniqueEntities.length - maxNodesVisible;
 
-  const entityTypeLabel = perspective === 'user-journey' ? 'User' : 'Dataset';
+  const entityTypeLabel = perspective === 'user-journey' ? 'Dataset' : 'Dataset';
 
   return (
     <div className="w-full h-full p-4">
@@ -215,9 +218,7 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                 <TableRow>
                   <TableHead className="w-16">Select</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>
-                    {perspective === 'user-journey' ? 'Dataset FQN' : 'User ID'}
-                  </TableHead>
+                  <TableHead>Dataset FQN</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -239,13 +240,16 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                         />
                       </TableCell>
                        <TableCell className="text-xs">
-                         {perspective === 'user-journey' ? 'User' : 'Dataset'}
+                         Dataset
                        </TableCell>
                       <TableCell className="text-xs font-mono">
                         <div className="max-w-32 truncate" title={entity.name}>
                           {entity.name}
                         </div>
                         <div className="text-xs text-muted-foreground mt-1">
+                          {perspective === 'user-journey' && 'id' in entity ? String(entity.id) : ''}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
                           {readCount}R / {modifyCount}M
                         </div>
                       </TableCell>
@@ -384,9 +388,9 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
                     const y = 100 + (accessIndex * 35);
                     const isRead = access.accessType.toLowerCase().includes('read');
                     
-                    // Show different info based on perspective
+                    // Show different info based on perspective - for user journey show user names
                     const displayName = perspective === 'user-journey' 
-                      ? access.datasetName.substring(0, 3)
+                      ? access.userName.substring(0, 3)
                       : access.userName.substring(0, 3);
                     
                     return (
@@ -449,7 +453,7 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
               return timeBuckets.map((bucket, bucketIndex) => {
                 const entityAccesses = bucket.accesses.filter(a => 
                   perspective === 'user-journey' 
-                    ? a.userName === entityName
+                    ? a.datasetName === entityName
                     : a.datasetName === entityName
                 );
                 if (entityAccesses.length === 0) return null;
