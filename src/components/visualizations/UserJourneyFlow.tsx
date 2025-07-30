@@ -6,6 +6,7 @@ import { Play, Pause, RotateCcw, ChevronUp, ChevronDown } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface UserJourneyFlowProps {
   data: DatasetAccess[];
@@ -215,19 +216,25 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
         
         <div className="flex gap-4 items-end">
           <div>
-            <label className="text-xs text-muted-foreground mb-2 block">Sec-years</label>
-            <input 
-              type="number" 
-              className="w-20 h-8 px-2 text-xs border border-border rounded bg-background"
-              placeholder="0"
-            />
+            <label className="text-xs text-muted-foreground mb-2 block">Time Unit</label>
+            <Select defaultValue="hours">
+              <SelectTrigger className="w-24 h-8 text-xs">
+                <SelectValue placeholder="Unit" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="seconds">Seconds</SelectItem>
+                <SelectItem value="minutes">Minutes</SelectItem>
+                <SelectItem value="hours">Hours</SelectItem>
+                <SelectItem value="days">Days</SelectItem>
+                <SelectItem value="years">Years</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-2 block">Count (1-10)</label>
+            <label className="text-xs text-muted-foreground mb-2 block">Count</label>
             <input 
               type="number" 
-              min="1" 
-              max="10" 
+              min="1"
               className="w-20 h-8 px-2 text-xs border border-border rounded bg-background"
               placeholder="1"
             />
