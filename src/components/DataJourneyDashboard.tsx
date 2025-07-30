@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AccessHeatmap } from "./visualizations/AccessHeatmap";
 import { UserDatasetFlow } from "./visualizations/UserDatasetFlow";
 import { TimelineChart } from "./visualizations/TimelineChart";
@@ -16,8 +18,10 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { MetricCards } from "./MetricCards";
 import { SearchPanel } from "./SearchPanel";
 import { JourneyInsights } from "./JourneyInsights";
-import { PlayCircle, Pause, SkipForward, SkipBack, Settings, Database, Users, Activity } from "lucide-react";
+import { PlayCircle, Pause, SkipForward, SkipBack, Settings, Database, Users, Activity, CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 // Mock data types
 export interface DatasetAccess {
@@ -54,13 +58,17 @@ const DataJourneyDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [selectedDataset, setSelectedDataset] = useState<string | null>(null);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [bucketMultiplier, setBucketMultiplier] = useState(3);
   const [currentTime, setCurrentTime] = useState(0);
+  const [startDate, setStartDate] = useState<Date>();
+  const [endDate, setEndDate] = useState<Date>();
+  const [userIdFilter, setUserIdFilter] = useState("");
+  const [datasetIdFilter, setDatasetIdFilter] = useState("");
 const [filters, setFilters] = useState({
     departments: [] as string[],
     datasetTypes: [] as string[],
     accessTypes: [] as string[],
-    timeWindow: 'day' as 'hour' | 'day' | 'week' | 'month'
+    timeWindow: 'day' as 'second' | 'minute' | 'hour' | 'day' | 'week' | 'year'
   });
   const [treeHierarchy, setTreeHierarchy] = useState<'dataset-orgs-users' | 'user-platform-dataset'>('dataset-orgs-users');
   const [journeyPerspective, setJourneyPerspective] = useState<'user-journey' | 'dataset-journey'>('user-journey');
@@ -97,45 +105,31 @@ const [filters, setFilters] = useState({
     setAccessData(generateMockData());
   }, []);
 
-  // Filter data based on current filters and time range
+  // Filter data based on current filters and date range
   const filteredData = useMemo(() => {
     return accessData.filter(access => {
-      const timeMatch = currentTime === 0 || access.timestamp.getTime() <= Date.now() - (100 - currentTime) * 24 * 60 * 60 * 1000;
+      const dateMatch = (!startDate || access.timestamp >= startDate) && 
+                       (!endDate || access.timestamp <= endDate);
       const searchMatch = !searchQuery || 
         access.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         access.datasetName.toLowerCase().includes(searchQuery.toLowerCase());
+      const userMatch = !userIdFilter || access.userId.includes(userIdFilter);
+      const datasetMatch = !datasetIdFilter || access.datasetId.includes(datasetIdFilter);
       
-      return timeMatch && searchMatch;
+      return dateMatch && searchMatch && userMatch && datasetMatch;
     });
-  }, [accessData, currentTime, searchQuery]);
+  }, [accessData, startDate, endDate, searchQuery, userIdFilter, datasetIdFilter]);
 
-  // Playback control
-  useEffect(() => {
-    if (!isPlaying) return;
-    
-    const interval = setInterval(() => {
-      setCurrentTime(prev => {
-        if (prev >= 100) {
-          setIsPlaying(false);
-          return 100;
-        }
-        return prev + (playbackSpeed * 0.5);
-      });
-    }, 100);
+  // Generate bucket labels based on time unit and multiplier
+  const bucketLabels = useMemo(() => {
+    const labels = [];
+    for (let i = 1; i <= bucketMultiplier; i++) {
+      const value = i === 1 ? 1 : i;
+      labels.push(`${value} ${filters.timeWindow}${value > 1 ? 's' : ''}`);
+    }
+    return labels;
+  }, [bucketMultiplier, filters.timeWindow]);
 
-    return () => clearInterval(interval);
-  }, [isPlaying, playbackSpeed]);
-
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
-    toast(isPlaying ? "Playback paused" : "Playback started");
-  };
-
-  const handleReset = () => {
-    setCurrentTime(0);
-    setIsPlaying(false);
-    toast("Timeline reset to beginning");
-  };
 
   const handleJourneyInsight = async (selectedPath: string[]) => {
     setLoading(true);
@@ -202,34 +196,117 @@ const [filters, setFilters] = useState({
                 </div>
               </div>
               
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-muted-foreground">Time Buckets:</span>
-                <Select value={filters.timeWindow} onValueChange={(v: any) => setFilters(prev => ({ ...prev, timeWindow: v }))}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="second">Seconds</SelectItem>
-                    <SelectItem value="minute">Minutes</SelectItem>
-                    <SelectItem value="hour">Hours</SelectItem>
-                    <SelectItem value="day">Days</SelectItem>
-                    <SelectItem value="week">Weeks</SelectItem>
-                    <SelectItem value="year">Years</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Timeline:</span>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-[140px] justify-start text-left font-normal",
+                          !startDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {startDate ? format(startDate, "PP") : "Start date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={startDate}
+                        onSelect={setStartDate}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-[140px] justify-start text-left font-normal",
+                          !endDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {endDate ? format(endDate, "PP") : "End date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Time Unit:</span>
+                  <Select value={filters.timeWindow} onValueChange={(v: any) => setFilters(prev => ({ ...prev, timeWindow: v }))}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="second">Seconds</SelectItem>
+                      <SelectItem value="minute">Minutes</SelectItem>
+                      <SelectItem value="hour">Hours</SelectItem>
+                      <SelectItem value="day">Days</SelectItem>
+                      <SelectItem value="week">Weeks</SelectItem>
+                      <SelectItem value="year">Years</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 
-                <span className="text-sm text-muted-foreground">Multiplier:</span>
-                <Select value={playbackSpeed.toString()} onValueChange={(v) => setPlaybackSpeed(Number(v))}>
-                  <SelectTrigger className="w-20">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">n</SelectItem>
-                    <SelectItem value="2">n+1</SelectItem>
-                    <SelectItem value="3">n+2</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Buckets:</span>
+                  <Select value={bucketMultiplier.toString()} onValueChange={(v) => setBucketMultiplier(Number(v))}>
+                    <SelectTrigger className="w-20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 10 }, (_, i) => i + 1).map(num => (
+                        <SelectItem key={num} value={num.toString()}>{num}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="User ID"
+                    value={userIdFilter}
+                    onChange={(e) => setUserIdFilter(e.target.value)}
+                    className="w-32"
+                  />
+                  <Input
+                    placeholder="Dataset ID"
+                    value={datasetIdFilter}
+                    onChange={(e) => setDatasetIdFilter(e.target.value)}
+                    className="w-32"
+                  />
+                </div>
               </div>
+              
+              {bucketLabels.length > 0 && (
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-sm text-muted-foreground">Current buckets:</span>
+                  <div className="flex gap-1">
+                    {bucketLabels.map((label, i) => (
+                      <Badge key={i} variant="outline" className="text-xs">
+                        {label}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardHeader>
             
             <CardContent className="h-[800px]">
