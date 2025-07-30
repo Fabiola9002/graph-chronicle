@@ -311,16 +311,16 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
         </div>
 
         {/* Visualization Area */}
-        <div className="flex-1 relative">
+        <div className="flex-1">
           {/* Time bucket columns */}
-          <div className="flex gap-4">
+          <div className="flex gap-4 h-[500px]">
             {timeBuckets.map((bucket, index) => {
               const accesses = bucket.accesses;
               
               return (
                 <div 
                   key={index}
-                  className="flex-1 border border-border rounded-lg bg-card min-h-[500px]"
+                  className="flex-1 border border-border rounded-lg bg-card"
                 >
                   {/* Hour label */}
                   <div className="text-center font-bold text-lg p-4 border-b">
@@ -382,98 +382,8 @@ export const UserJourneyFlow = ({ data, perspective = 'user-journey' }: UserJour
             })}
           </div>
           
-          {/* SVG Overlay for connecting arrows */}
-          <svg
-            ref={svgRef}
-            width="100%"
-            height="100%"
-            className="absolute top-0 left-0 pointer-events-none"
-            style={{ zIndex: 10 }}
-          >
-            <defs>
-              <marker
-                id="readArrow"
-                markerWidth={10}
-                markerHeight={10}
-                refX={9}
-                refY={3}
-                orient="auto"
-                markerUnits="strokeWidth"
-              >
-                <polygon
-                  points="0 0, 10 3, 0 6"
-                  fill="hsl(var(--chart-2))"
-                />
-              </marker>
-              <marker
-                id="modifyArrow"
-                markerWidth={10}
-                markerHeight={10}
-                refX={9}
-                refY={3}
-                orient="auto"
-                markerUnits="strokeWidth"
-              >
-                <polygon
-                  points="0 0, 10 3, 0 6"
-                  fill="hsl(var(--chart-1))"
-                />
-              </marker>
-            </defs>
-
-            {/* Draw connecting arrows */}
-            {Array.from(selectedEntities).map((entityName, entityDisplayIndex) => {
-              const entity = uniqueEntities.find(e => e.name === entityName);
-              if (!entity) return null;
-
-              return timeBuckets.map((bucket, bucketIndex) => {
-                const entityAccesses = bucket.accesses.filter(a => 
-                  perspective === 'user-journey' 
-                    ? a.userName === entityName
-                    : a.datasetName === entityName
-                );
-                if (entityAccesses.length === 0) return null;
-
-                return entityAccesses.slice(0, 12).map((access, accessIndex) => {
-                  const isRead = access.accessType.toLowerCase().includes('read');
-                  
-                  // Calculate positions
-                  const connectionPointX = -50; // Connection point position (relative to SVG)
-                  const connectionPointY = 80 + (entityDisplayIndex * 80); // Vertical spacing between connection points
-                  
-                  const bucketWidth = 100 / timeBuckets.length; // Percentage width per bucket
-                  const targetX = (bucketIndex * bucketWidth) + (bucketWidth / 2); // Center of bucket (percentage)
-                  const targetXPx = (targetX / 100) * 800; // Convert to pixels (assume 800px width)
-                  const targetY = 120 + (accessIndex * 50); // Access item position
-                  
-                  // Create curved path
-                  const controlX1 = connectionPointX + 100;
-                  const controlY1 = connectionPointY - 30;
-                  const controlX2 = targetXPx - 100;
-                  const controlY2 = targetY - 30;
-                  
-                  const path = `M ${connectionPointX} ${connectionPointY} C ${controlX1} ${controlY1} ${controlX2} ${controlY2} ${targetXPx - 15} ${targetY}`;
-                  
-                  return (
-                    <g key={`connection-${entityName}-${bucketIndex}-${accessIndex}`}>
-                      <path
-                        d={path}
-                        fill="none"
-                        stroke={isRead ? 'hsl(var(--chart-2))' : 'hsl(var(--chart-1))'}
-                        strokeWidth={3}
-                        opacity={0.8}
-                        markerEnd={isRead ? "url(#readArrow)" : "url(#modifyArrow)"}
-                        strokeDasharray={isRead ? "none" : "8,4"}
-                      />
-                    </g>
-                  );
-                });
-              });
-            })}
-          </svg>
-          
           {/* Legend */}
-          <div className="absolute bottom-4 left-4 flex gap-4 text-sm bg-background/90 p-3 rounded-lg border">
+          <div className="flex gap-4 text-sm bg-background/90 p-3 rounded-lg border mt-4">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded-full bg-chart-2"></div>
               <span>Read Operations</span>
